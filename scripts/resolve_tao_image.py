@@ -84,7 +84,7 @@ def resolve_image_key(skill_bank: Path, image: str) -> tuple[str, str]:
 def resolve_image(skill_bank: Path, model: str, action: str) -> dict[str, Any]:
     """Resolve action-level image first, then model-level image."""
     metadata_path = (
-        skill_bank.expanduser() / "models" / model / "references" / "skill_info.yaml"
+        skill_bank.expanduser() / "skills" / "models" / model / "references" / "skill_info.yaml"
     )
     if not metadata_path.exists():
         raise FileNotFoundError(f"Model metadata not found: {metadata_path}")
@@ -103,7 +103,7 @@ def resolve_image(skill_bank: Path, model: str, action: str) -> dict[str, Any]:
         )
     if not isinstance(action_config, dict):
         raise ValueError(
-            f"models/{model}/references/skill_info.yaml actions.{action} must be an object"
+            f"skills/models/{model}/references/skill_info.yaml actions.{action} must be an object"
         )
 
     candidates = [

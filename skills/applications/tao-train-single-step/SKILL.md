@@ -55,9 +55,9 @@ folders.
 
 Before creating a plain train runner, inspect the selected model's metadata
 with `scripts/list_tao_models.py --scope automl --format json` or read
-`models/<network>/references/skill_info.yaml`. If `automl_enabled` is true and
+`skills/models/<network>/references/skill_info.yaml`. If `automl_enabled` is true and
 the helper reports a valid train schema for that model, route the train stage
-through `applications/tao-run-automl` by default. Only stay on the plain train path
+through `skills/applications/tao-run-automl` by default. Only stay on the plain train path
 when `automl_policy=off`, the user explicitly asks for no HPO/AutoML, or AutoML
 is enabled but not runnable because the model's train schema is not packaged
 yet.

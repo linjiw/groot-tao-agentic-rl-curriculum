@@ -27,7 +27,7 @@ tags:
 **To start an inference service:**
 1. Collect required inputs (Section 1) and resolve the container image (Section 2).
 2. Build the job payload and inner command (Sections 3–4.1); use `references/code-templates.yaml` → `job_payload_builder`.
-3. Read `platform/<platform>/SKILL.md` and start the container (Section 4.2).
+3. Read `skills/platform/<platform>/SKILL.md` and start the container (Section 4.2).
 4. Write the service registry and poll readiness (Section 4.3); use `references/code-templates.yaml` → `registry_write.<platform>` and `readiness_check`.
 
 **To send an inference request:**
@@ -35,7 +35,7 @@ tags:
 2. **Before building the request body, prompt the user for the vLLM-style sampling parameters (Section 6.1).** Present `max_tokens`, `top_p`, `temperature` (and any per-arch extras) with their defaults; let the user override or skip each one to accept the default. Never silently use defaults.
 3. Build and send the body per Section 6.2; handle the response per Section 6.3.
 
-**To stop a service:** Read `references/code-templates.yaml` → `stop.registry_read` to resolve the job_id, read `platform/<platform>/SKILL.md`, then follow Section 5.
+**To stop a service:** Read `references/code-templates.yaml` → `stop.registry_read` to resolve the job_id, read `skills/platform/<platform>/SKILL.md`, then follow Section 5.
 
 **Reference data** (schemas, mappings, valid values — no instructions):
 - **`references/service.yaml`** — image mappings, valid `network_arch` names, job payload schema, env var names, secrets classification.
@@ -105,7 +105,7 @@ Set these in `env_payload` before encoding `env_json`. Do **not** set `TAO_LOGGI
 
 ## 4. Executing across platforms
 
-The job payload and inner command (Sections 1–3) are **platform-agnostic**. For each platform, read **`platform/<name>/SKILL.md`** for preflight checks and credentials **before** generating any execution code.
+The job payload and inner command (Sections 1–3) are **platform-agnostic**. For each platform, read **`skills/platform/<name>/SKILL.md`** for preflight checks and credentials **before** generating any execution code.
 
 ### 4.1 Build the inner command (per arch)
 
@@ -124,7 +124,7 @@ Arch-specific notes (full details in `references/service.yaml` → `container_co
 
 ### 4.2 Delegate execution to the platform skill
 
-Read **`platform/<platform>/SKILL.md`** and follow it to start the container.
+Read **`skills/platform/<platform>/SKILL.md`** and follow it to start the container.
 
 **Base parameters (all platforms):**
 
@@ -142,7 +142,7 @@ Read **`platform/<platform>/SKILL.md`** and follow it to start the container.
 | Platform | Additional inputs |
 |----------|------------------|
 | **local-docker** | None beyond base |
-| **brev** | `instance_id` (optional — reuse an existing instance); on multi-credential / multi-workspace accounts also `cloud_cred_id` and `workspace_group_id` for first-create — see `platform/tao-run-on-brev/SKILL.md` |
+| **brev** | `instance_id` (optional — reuse an existing instance); on multi-credential / multi-workspace accounts also `cloud_cred_id` and `workspace_group_id` for first-create — see `skills/platform/tao-run-on-brev/SKILL.md` |
 | **lepton** | `resource_shape` (GPU shape ID, e.g. `gpu.8xh100-sxm`); `dedicated_node_group` (optional) |
 | **slurm** | `partition` and `account` — check `SLURM_PARTITION`/`SLURM_ACCOUNT` env vars; ask user if unset |
 | **kubernetes** | `namespace` (default: `default`); `image_pull_secret` (required for `nvcr.io` images) |
@@ -181,7 +181,7 @@ Then poll for readiness — see `references/code-templates.yaml` → `readiness_
 
 ## 5. Stopping the inference service
 
-Ask the user for the `job_id` to stop. If they don't provide one, default to `state["latest"]` and confirm which job_id is being stopped. Read the registry using `references/code-templates.yaml` → `stop.registry_read`, then read **`platform/<platform>/SKILL.md`** and use its cancellation / stop mechanism.
+Ask the user for the `job_id` to stop. If they don't provide one, default to `state["latest"]` and confirm which job_id is being stopped. Read the registry using `references/code-templates.yaml` → `stop.registry_read`, then read **`skills/platform/<platform>/SKILL.md`** and use its cancellation / stop mechanism.
 
 | Platform | Identifier to pass | Extra cleanup |
 |----------|--------------------|---------------|

@@ -72,7 +72,7 @@ Temperature guidance:
 
 For self-hosted models, the pipeline accepts any endpoint that speaks the OpenAI chat-completions API. Two common ways to provision one:
 
-1. **`applications/tao-run-inference-service` skill** — workflow for standing up a TAO inference microservice locally. Should support Cosmos, Qwen, and Gemma. Check that skill's `references/service.yaml` `valid_network_arch_config_basenames` for the current model list.
+1. **`skills/applications/tao-run-inference-service` skill** — workflow for standing up a TAO inference microservice locally. Should support Cosmos, Qwen, and Gemma. Check that skill's `references/service.yaml` `valid_network_arch_config_basenames` for the current model list.
 2. **Bring-your-own deployment** — vLLM, NIM, or any other OpenAI-compatible server.
 ```yaml
 image_grounding:

@@ -57,7 +57,7 @@ ${TAO_SKILL_BANK_PATH:-~/tao-skills-external}/scripts/list_tao_models.py \
   --skill-bank ${TAO_SKILL_BANK_PATH:-~/tao-skills-external} --scope all --format text
 ```
 
-The model list comes from `models/schemas.manifest.json`.
+The model list comes from `skills/models/schemas.manifest.json`.
 
 ## AutoML Lists
 
@@ -74,6 +74,6 @@ ${TAO_SKILL_BANK_PATH:-~/tao-skills-external}/scripts/list_automl_support.py \
   --skill-bank ${TAO_SKILL_BANK_PATH:-~/tao-skills-external} --format text
 ```
 
-AutoML support requires `models/<network>/schemas/train.schema.json` to be
+AutoML support requires `skills/models/<network>/schemas/train.schema.json` to be
 packaged with the plugin and parse successfully as JSON. If that dataclass schema
 is missing or invalid, do not describe the model as AutoML-supported.

@@ -2,7 +2,7 @@
 
 Read this when the parent runs the `routing` stage to split RCA gaps into
 per-augmentation-module subsets. The underlying skill
-`tao-skill-bank:tao-route-visual-changenet-samples` (`data/tao-route-visual-changenet-samples/SKILL.md`)
+`tao-skill-bank:tao-route-visual-changenet-samples` (`skills/data/tao-route-visual-changenet-samples/SKILL.md`)
 owns the full routing contract: label eligibility for each module, the Python
 recipe (two `.isin(...)` masks), per-label routing breakdown, and report format.
 This file only covers the DEFT-loop-specific overlay: required inputs, output

@@ -81,7 +81,7 @@ Ask the user: *"What domain are these videos from?"* Choose one of the following
 - **OpenAI-compatible** (Qwen via vLLM, NIM endpoint, etc.): user provides `base_url`, `model_name`, and `api_key`.
 - Steps 2–3 are text-only — a smaller/cheaper LLM is fine for `llm.backend` even when `vlm.backend` is a frontier video model.
 
-If the user has **no endpoint at all** and wants to self-host, point them at the `applications/tao-run-inference-service` skill — a workflow that stands up a network-specific TAO inference microservice locally and exposes an OpenAI-compatible endpoint. Should support Cosmos, Qwen, and Gemma. Check `applications/tao-run-inference-service/references/service.yaml` for the current `valid_network_arch_config_basenames` list before relying on a specific model.
+If the user has **no endpoint at all** and wants to self-host, point them at the `skills/applications/tao-run-inference-service` skill — a workflow that stands up a network-specific TAO inference microservice locally and exposes an OpenAI-compatible endpoint. Should support Cosmos, Qwen, and Gemma. Check `skills/applications/tao-run-inference-service/references/service.yaml` for the current `valid_network_arch_config_basenames` list before relying on a specific model.
 
 If the user doesn't have endpoint access ready and isn't ready to set one up, stop here and help them figure it out first.
 

@@ -49,7 +49,7 @@ When a user wants to run this pipeline, walk through these steps:
    2. **NIM** (e.g. `https://inference-api.nvidia.com/v1`) — set `vlm.backend: "openai"`; collect `base_url`, `model_name`, and `api_key`.
    3. **TAO inference microservice** (self-hosted, OpenAI-compatible). Confirm whether the server is already running:
       - **Running** — collect `base_url`, `model_name`, and (optionally) `api_key`; set `vlm.backend: "openai"`.
-      - **Not running** — guide the user through the `applications/tao-run-inference-service` skill, which stands up a local TAO inference microservice with an OpenAI-compatible API. Before promising a specific model, check `applications/tao-run-inference-service/references/service.yaml` for `valid_network_arch_config_basenames`. Once the server is up, collect `base_url`, `model_name`, and (optionally) `api_key`; set `vlm.backend: "openai"`.
+      - **Not running** — guide the user through the `skills/applications/tao-run-inference-service` skill, which stands up a local TAO inference microservice with an OpenAI-compatible API. Before promising a specific model, check `skills/applications/tao-run-inference-service/references/service.yaml` for `valid_network_arch_config_basenames`. Once the server is up, collect `base_url`, `model_name`, and (optionally) `api_key`; set `vlm.backend: "openai"`.
    4. **vLLM** (self-hosted, OpenAI-compatible). Confirm whether the server is already running:
       - **Running** — collect `base_url`, `model_name`, and (optionally) `api_key`; set `vlm.backend: "openai"`.
       - **Not running** — follow [references/vllm_server.md](references/vllm_server.md) to install and launch a vLLM server, then collect `base_url`, `model_name`, and (optionally) `api_key`; set `vlm.backend: "openai"`.

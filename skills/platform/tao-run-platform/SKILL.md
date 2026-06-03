@@ -105,7 +105,7 @@ ${TAO_SKILL_BANK_PATH:-~/tao-skills-external}/scripts/list_tao_models.py \
 ```
 
 If the selected model has `automl_enabled: true` and a valid train schema,
-route training through `applications/tao-run-automl` by default. A workflow should
+route training through `skills/applications/tao-run-automl` by default. A workflow should
 only bypass AutoML when its run settings include `automl_policy: off`, the user
 explicitly asks for a plain run, or the model metadata says AutoML is enabled
 but the train schema is not packaged yet.
@@ -220,7 +220,7 @@ The skill's action declares its config mechanism in `skill_info.yaml`'s `actions
 import yaml
 from pathlib import Path
 
-skill_dir = Path(bank) / "models/<model>"
+skill_dir = Path(bank) / "skills/models/<model>"
 skill_info = yaml.safe_load((skill_dir / "references/skill_info.yaml").read_text())
 action_cfg = skill_info["actions"][action]
 mode = action_cfg.get("mode", "config")
@@ -448,7 +448,7 @@ specs["dataset"]["train_csv"] = f"{base}/train.csv"   # nested — see "spec is 
 - Pass `cloud_cred_id="<id>"` and `workspace_group_id="<id>"` on multi-credential
   or multi-workspace accounts. Without them, `brev create` rejects with a
   placement error. Discover via `brev orgs --json` (cloud cred) and
-  `brev ls --json` (workspace group). See `platform/tao-run-on-brev/SKILL.md` →
+  `brev ls --json` (workspace group). See `skills/platform/tao-run-on-brev/SKILL.md` →
   *Creating an instance — placement info* for the full lookup recipe.
 - The handler waits for both `status=RUNNING` and `brev exec ... -- true`
   before returning, so a `create_job` → `get_job_logs` sequence won't race

@@ -121,7 +121,7 @@ to the `tao-setup-nvidia-gpu-host` skill rather than duplicating them here. NGC
 in Phase 0 — those are the only TAO-Toolkit-specific bits.
 
 **Docker run conventions:** every `docker run` invocation in Phases 3 / 4 /
-6 follows the canonical flag set from `platform/tao-run-on-docker/SKILL.md` (`--gpus
+6 follows the canonical flag set from `skills/platform/tao-run-on-docker/SKILL.md` (`--gpus
 all`, `-v` bind mounts, `-e VAR` passthrough, `--shm-size=16G` for
 DataLoader-heavy pytest, `--rm` for one-shots). The phase reference files
 only specify the *workflow-specific* additions (`-w /workspace/<repo>`,

@@ -113,7 +113,7 @@ here.
 
 **Default platform:** `local-docker`. This workflow builds a one-off image
 (`run-<short>:latest`) and runs it on the local Docker daemon — the same
-pattern documented in `platform/tao-run-on-local-docker/SKILL.md`. Ask the user only when
+pattern documented in `skills/platform/tao-run-on-local-docker/SKILL.md`. Ask the user only when
 they explicitly need a different backend (Brev for a remote GPU instance,
 Lepton/SLURM/Kubernetes for managed scheduling); in that case run the chosen
 platform's Preflight section first, generate the choices via
@@ -135,7 +135,7 @@ requiring them up front.
 
 **Docker run conventions:** every `docker run` invocation in
 `references/docker-runs.md` follows the canonical flag set from
-`platform/tao-run-on-docker/SKILL.md` (`--gpus all`, `--ipc=host` or `--shm-size=…`,
+`skills/platform/tao-run-on-docker/SKILL.md` (`--gpus all`, `--ipc=host` or `--shm-size=…`,
 `-e VAR` passthrough, bind mounts, `--rm` for one-shots). Treat that skill as
 the spec; this one only adds workflow-specific flags
 (`--entrypoint /bin/bash -lc`, `PYTORCH_CUDA_ALLOC_CONF`, `--name hft_train`).

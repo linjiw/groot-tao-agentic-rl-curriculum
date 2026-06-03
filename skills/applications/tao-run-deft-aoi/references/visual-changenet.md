@@ -1,7 +1,7 @@
 # Visual ChangeNet — DEFT Loop Reference
 
 Read this when the parent runs the `train`, `inference`, or `evaluate` stage. The
-underlying skill `tao-skill-bank:tao-train-visual-changenet` (`models/tao-train-visual-changenet/SKILL.md`)
+underlying skill `tao-skill-bank:tao-train-visual-changenet` (`skills/models/tao-train-visual-changenet/SKILL.md`)
 owns the docker invocation, spec format, CSV format, lighting conventions, and error
 patterns — its `## Local Docker Invocation` section has the exact docker run command
 (including `--shm-size=8g`, backbone file mount, and how to override

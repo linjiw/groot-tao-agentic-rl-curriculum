@@ -174,7 +174,7 @@ sdk.cancel_job(job.id)  # delete_namespaced_job with propagation_policy="Foregro
 The SDK refuses to submit GPU jobs to a cluster with no `nvidia.com/gpu` allocatable. For self-managed clusters, first run the `tao-setup-nvidia-gpu-host` install action on every GPU worker node or bake the same package set into the node image:
 
 ```bash
-bash platform/tao-setup-nvidia-gpu-host/scripts/setup-nvidia-gpu-host.sh --backend kubernetes --install --yes
+bash skills/platform/tao-setup-nvidia-gpu-host/scripts/setup-nvidia-gpu-host.sh --backend kubernetes --install --yes
 ```
 
 Then install the NVIDIA GPU Operator or device plugin:

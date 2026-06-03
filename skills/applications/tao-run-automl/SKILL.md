@@ -23,7 +23,7 @@ tags:
 
 # TAO AutoML Skill
 
-This is a skill-bank **workflow** skill at `applications/tao-run-automl/`. The agent
+This is a skill-bank **workflow** skill at `skills/applications/tao-run-automl/`. The agent
 discovers it by reading this file directly (or via the `tao-skills` plugin).
 
 Run automated hyperparameter optimization (HPO) for any TAO network. The agent uses `AutoMLRunner` — a single interface that manages the full loop: generate hyperparameter recommendations, launch training jobs, extract metrics, and feed results back to the optimizer.
@@ -33,7 +33,7 @@ The runner is **platform-agnostic** — it takes any object implementing the sta
 | SDK | Best for AutoML |
 |---|---|
 | `LeptonSDK` | Multi-node sweeps on DGX Cloud; managed scheduling |
-| `BrevSDK` | Cost-tuned sweeps on Brev instances (single-instance per rec, multi-GPU OK). Multi-credential / multi-workspace accounts must pass `cloud_cred_id=` and `workspace_group_id=` to `create_job` — see `platform/tao-run-on-brev/SKILL.md`. |
+| `BrevSDK` | Cost-tuned sweeps on Brev instances (single-instance per rec, multi-GPU OK). Multi-credential / multi-workspace accounts must pass `cloud_cred_id=` and `workspace_group_id=` to `create_job` — see `skills/platform/tao-run-on-brev/SKILL.md`. |
 | `SlurmSDK` | Large sweeps on shared HPC clusters with queue/quota |
 | `KubernetesSDK` | Sweeps on EKS / GKE / AKS / on-prem clusters with the NVIDIA GPU Operator |
 | `DockerSDK` | Local debugging or single-host sweeps with a few recs |
@@ -68,7 +68,7 @@ If missing, the agent prompts the user to authorize the install via Bash, then r
 Before running AutoML:
 
 1. **Shared launch preflight**: Run the `tao-launch-workflow` intake pattern first. AutoML must not create runner files, workspaces, state files, logs, compatibility shims, or install dependencies until the selected platform's credentials, access check, dataset visibility, model credentials, container image confirmation, and compute shape are satisfied. This prevents wasting the AutoML budget on fake recommendation failures caused by SSH, storage, image, or credential setup.
-2. **SDK credentials**: env vars sourced from `~/.config/tao/.env` (auto-loaded by the skill bank's SessionStart hook). Required env vars depend on which SDK you choose — see each platform's SKILL.md (`platform/tao-run-on-lepton`, `platform/tao-run-on-brev`, `platform/tao-run-on-slurm`, `platform/tao-run-on-kubernetes`, `platform/tao-run-on-local-docker`). Before asking for credentials, run:
+2. **SDK credentials**: env vars sourced from `~/.config/tao/.env` (auto-loaded by the skill bank's SessionStart hook). Required env vars depend on which SDK you choose — see each platform's SKILL.md (`skills/platform/tao-run-on-lepton`, `skills/platform/tao-run-on-brev`, `skills/platform/tao-run-on-slurm`, `skills/platform/tao-run-on-kubernetes`, `skills/platform/tao-run-on-local-docker`). Before asking for credentials, run:
    ```bash
    ${TAO_SKILL_BANK_PATH:-~/tao-skills-external}/scripts/list_tao_platforms.py \
      --skill-bank ${TAO_SKILL_BANK_PATH:-~/tao-skills-external} \
@@ -161,7 +161,7 @@ Each "trial" is called a **recommendation** (rec). One rec = one full training r
 
 When the user asks what models/networks are supported for AutoML, run the
 packaged model-list helper in AutoML mode. AutoML enablement is **model-level**
-metadata (`models/<network>/references/skill_info.yaml` has
+metadata (`skills/models/<network>/references/skill_info.yaml` has
 `automl_enabled: true`), not workflow-level metadata. The helper reads that
 model metadata, then validates whether the model also has a packaged,
 parseable train dataclass schema:
@@ -181,7 +181,7 @@ ${TAO_SKILL_BANK_PATH:-~/tao-skills-external}/scripts/list_automl_support.py \
 Return both sections from that output: runnable AutoML models and
 AutoML-enabled models still blocked on schema packaging. The support rule is:
 AutoML is enabled at model level; runnable AutoML also requires
-`models/<network>/schemas/train.schema.json` to be packaged and valid.
+`skills/models/<network>/schemas/train.schema.json` to be packaged and valid.
 
 ---
 
@@ -943,7 +943,7 @@ Model-specific notes do not belong in this AutoML skill. For every requested `ne
 
 ## Common Pitfalls
 
-1. **`skill_dir` not passed (or wrong path).** `AutoMLRunner(skill_dir=...)` requires an absolute path to a model directory inside the skill bank. The runner raises `FileNotFoundError: skill_info.yaml not found at <skill_dir>/references/skill_info.yaml` if the path is wrong. Use the same bank root the agent loaded this SKILL.md from; combine with `models/<network>/`.
+1. **`skill_dir` not passed (or wrong path).** `AutoMLRunner(skill_dir=...)` requires an absolute path to a model directory inside the skill bank. The runner raises `FileNotFoundError: skill_info.yaml not found at <skill_dir>/references/skill_info.yaml` if the path is wrong. Use the same bank root the agent loaded this SKILL.md from; combine with `skills/models/<network>/`.
 2. **Wrong LLM endpoint (404).** The code hardcodes `https://integrate.api.nvidia.com/v1` as the default, which returns 404. The correct endpoint is `https://inference-api.nvidia.com`. ALWAYS pass `llm_endpoint` explicitly in `automl_settings`. The LLM brain silently falls back to random sampling on 404, so you won't see a crash — just useless random configs.
 3. **Model-specific training failures (data format, missing datasets, invalid params).** Each network has unique training requirements. ALWAYS read `<bank-root>/models/<network>/SKILL.md` — the "Training Requirements" and "Error Patterns" sections document model-specific failure modes that apply to AutoML recs too.
 4. **Workspace path collisions.** Running the same script twice overwrites the previous experiment. Always include a timestamp: `workspace_path=f"./automl_workspace/{TIMESTAMP}"` where `TIMESTAMP = datetime.now().strftime("%Y%m%d_%H%M%S")`.

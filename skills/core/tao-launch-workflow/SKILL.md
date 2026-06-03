@@ -144,7 +144,7 @@ ${TAO_SKILL_BANK_PATH:-~/tao-skills-external}/scripts/resolve_tao_image.py \
   --model <network> --action <action> --format text
 ```
 
-If the helper is unavailable, read `models/<network>/config.json` through
+If the helper is unavailable, read `skills/models/<network>/config.json` through
 `SkillBank().get_model_config(network_arch)`. Resolve image fields in this
 order:
 

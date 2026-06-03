@@ -22,7 +22,7 @@ allowed-tools: Read Bash Write Skill
 
 # AutoML + DEFT Pipeline
 
-A workflow-bridge skill that runs **three phases** in sequence by delegating to two existing skills — `tao-run-automl` for HPO and a DEFT application skill (default `tao-run-deft-aoi` for AOI; other `applications/deft-*` skills for non-AOI cases) for the iterative data-improvement loop.
+A workflow-bridge skill that runs **three phases** in sequence by delegating to two existing skills — `tao-run-automl` for HPO and a DEFT application skill (default `tao-run-deft-aoi` for AOI; other `skills/applications/deft-*` skills for non-AOI cases) for the iterative data-improvement loop.
 
 This skill **does not** re-implement AutoML or DEFT. It owns only the connective tissue: HPO spec inputs, the spec-handoff between AutoML and DEFT, and the post-DEFT AutoML re-run on the augmented dataset.
 
@@ -97,15 +97,15 @@ The user explicitly does not want to be paged between phases. The DEFT loop's ow
 
 Before printing anything to the user, **open and read every downstream skill's preflight section in full**:
 
-- `applications/tao-run-automl/SKILL.md` → `## Preflight` (Phases 1 and 3). Specifically: shared launch preflight (platform credentials, dataset visibility, model credentials, container image confirmation, compute shape), required inputs (`platform`, `image`, `network_arch`, `train_dataset_uri`, `eval_dataset_uri`, `metric`, `algorithm`, `automl_max_recommendations`), and the runner-freshness rule.
-- The DEFT skill invoked in Phase 2 (AOI default: `applications/tao-run-deft-aoi/SKILL.md` → `## Pre-Flight` + `### Pre-Flight Summary`; for non-AOI runs, the corresponding `applications/deft-*` SKILL.md). Specifically: workspace/specs/CSV resolution, `.env` sourcing, NGC + HF token presence, `docker login nvcr.io`, container image resolution from `versions.yaml`, local image inspect, GPU memory rule of thumb (AOI ChangeNet: `batch_size ≤ 16` on 48 GB GPUs, `≤ 8` on 24 GB GPUs), pre-gen ingestion source verification + basename pairing, leakage check, and the loop's defaults (`max_iterations=3`, `top_k_per_target=5`, `min_similarity=0.9`).
+- `skills/applications/tao-run-automl/SKILL.md` → `## Preflight` (Phases 1 and 3). Specifically: shared launch preflight (platform credentials, dataset visibility, model credentials, container image confirmation, compute shape), required inputs (`platform`, `image`, `network_arch`, `train_dataset_uri`, `eval_dataset_uri`, `metric`, `algorithm`, `automl_max_recommendations`), and the runner-freshness rule.
+- The DEFT skill invoked in Phase 2 (AOI default: `skills/applications/tao-run-deft-aoi/SKILL.md` → `## Pre-Flight` + `### Pre-Flight Summary`; for non-AOI runs, the corresponding `skills/applications/deft-*` SKILL.md). Specifically: workspace/specs/CSV resolution, `.env` sourcing, NGC + HF token presence, `docker login nvcr.io`, container image resolution from `versions.yaml`, local image inspect, GPU memory rule of thumb (AOI ChangeNet: `batch_size ≤ 16` on 48 GB GPUs, `≤ 8` on 24 GB GPUs), pre-gen ingestion source verification + basename pairing, leakage check, and the loop's defaults (`max_iterations=3`, `top_k_per_target=5`, `min_similarity=0.9`).
 - The `tao-launch-workflow` shared intake (referenced by `tao-run-automl`) — platform-specific credentials and compute-shape questions.
 
 Then run **every read-only check** those preflight sections prescribe — image resolution, `docker image inspect`, file existence, basename pairing, row counts, value-count distributions, leakage diff, GPU memory query, host Python dependency check. The user should see the *outcome* of each check in the summary, not be asked to run it themselves.
 
 #### Required: run every step of the DEFT skill's `## Pre-Flight`
 
-Run **every check in `applications/tao-run-deft-aoi/SKILL.md` `## Pre-Flight`** (or, for non-AOI runs, the corresponding `applications/deft-*` SKILL.md `## Pre-Flight`) as part of the consolidated pre-flight, before printing the summary. If any step is skipped, the consolidated gate is invalid and the pipeline must not advance.
+Run **every check in `skills/applications/tao-run-deft-aoi/SKILL.md` `## Pre-Flight`** (or, for non-AOI runs, the corresponding `skills/applications/deft-*` SKILL.md `## Pre-Flight`) as part of the consolidated pre-flight, before printing the summary. If any step is skipped, the consolidated gate is invalid and the pipeline must not advance.
 
 ### Mandatory contents of the consolidated summary
 
@@ -341,4 +341,4 @@ The handoff shape — Phase 1 emits a *spec + checkpoint* (the checkpoint pre-se
 - `tao-skill-bank:tao-run-automl` — AutoML interface, algorithms, HP ranges
 - `tao-skill-bank:tao-run-deft-aoi` — full DEFT AOI loop (Phase 2 default)
 - `tao-skill-bank:tao-train-visual-changenet` — underlying ChangeNet train/eval/infer skill (used by both AutoML and DEFT)
-- Other `applications/deft-*` skills — non-AOI Phase 2 targets
+- Other `skills/applications/deft-*` skills — non-AOI Phase 2 targets
