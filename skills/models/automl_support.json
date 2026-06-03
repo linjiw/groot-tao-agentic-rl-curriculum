@@ -1,6 +1,6 @@
 {
   "schema_version": 1,
-  "support_rule": "AutoML is enabled at model level; runnable AutoML also requires models/<network>/schemas/train.schema.json to be packaged and valid.",
+  "support_rule": "AutoML is enabled at model level; runnable AutoML also requires skills/models/<network>/schemas/train.schema.json to be packaged and valid.",
   "supported": [
     {
       "automl_default_parameters": [],

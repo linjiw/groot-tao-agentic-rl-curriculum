@@ -62,7 +62,7 @@ if [ -n "$codex_skill_symlinks" ]; then
   codex_skill_symlink_errors=0
   while IFS= read -r path; do
     [ -z "$path" ] && continue
-    echo "ERROR: $path — do not mirror canonical skills under skills/. Keep real skills under applications/, data/, models/, or platform/." >&2
+    echo "ERROR: $path — do not mirror skills via symlinks under skills/. Real skills live under skills/{applications,data,models,platform,core}/." >&2
     codex_skill_symlink_errors=$((codex_skill_symlink_errors + 1))
   done <<< "$codex_skill_symlinks"
   errors=$((errors + codex_skill_symlink_errors))
@@ -181,14 +181,14 @@ for root, dirs, files in os.walk('.'):
     if 'SKILL.md' in files:
         path = os.path.join(root, 'SKILL.md')
         # Platform skills legitimately document the SDK
-        if path.startswith('./platform/'):
+        if path.startswith('./skills/platform/'):
             continue
         # Application skills that are SDK-orchestrated (AutoML, etc.) are exempt.
         # Add new ones here only after confirming they cannot run without the SDK.
-        if path in ('./applications/tao-run-automl/SKILL.md',):
+        if path in ('./skills/applications/tao-run-automl/SKILL.md',):
             continue
         # Models may have an "Optional: running via the TAO SDK" section
-        is_model = path.startswith('./models/')
+        is_model = path.startswith('./skills/models/')
         with open(path) as f:
             content = f.read()
         matches = leak_re.findall(content)
@@ -285,7 +285,7 @@ for root, dirs, files in os.walk('.'):
                     except KeyError as e:
                         print(f"ERROR: {path} — container_image key '{img}' not found in versions.yaml ({e})", file=sys.stderr); errs += 1
             # If this is a model or data skill AND skill_info declares actions, validate them
-            if (skill_dir.startswith('./models/') or skill_dir.startswith('./data/')) and isinstance(info, dict):
+            if (skill_dir.startswith('./skills/models/') or skill_dir.startswith('./skills/data/')) and isinstance(info, dict):
                 if 'actions' in info and not info.get('container_image'):
                     print(f"WARN: {path} — has actions but no container_image", file=sys.stderr)
                 actions = info.get('actions') or {}

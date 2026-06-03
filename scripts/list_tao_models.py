@@ -5,7 +5,7 @@
 """List packaged TAO model capabilities from shipped model metadata.
 
 AutoML enablement is model-level metadata (`automl_enabled: true` in
-models/<network>/references/skill_info.yaml). Runnable AutoML support is then
+skills/models/<network>/references/skill_info.yaml). Runnable AutoML support is then
 gated by the exact packaged train dataclass schema for each model.
 """
 
@@ -24,7 +24,7 @@ DEFAULT_SKILL_BANK = Path(
 TRAIN_SCHEMA_REL = Path("schemas") / "train.schema.json"
 SUPPORT_RULE = (
     "AutoML is enabled at model level; runnable AutoML also requires "
-    "models/<network>/schemas/train.schema.json to be packaged and valid."
+    "skills/models/<network>/schemas/train.schema.json to be packaged and valid."
 )
 
 
@@ -63,12 +63,12 @@ def load_json(path: Path) -> dict[str, Any]:
 
 def load_schema_manifest(skill_bank: Path) -> dict[str, Any]:
     """Load the packaged model action manifest."""
-    return load_json(skill_bank.expanduser() / "models" / "schemas.manifest.json")
+    return load_json(skill_bank.expanduser() / "skills" / "models" / "schemas.manifest.json")
 
 
 def load_automl_manifest(skill_bank: Path) -> dict[str, Any]:
     """Load the packaged AutoML compatibility manifest if present."""
-    path = skill_bank.expanduser() / "models" / "automl_support.json"
+    path = skill_bank.expanduser() / "skills" / "models" / "automl_support.json"
     if not path.exists():
         return {"supported": [], "unsupported": []}
     return load_json(path)
@@ -98,7 +98,7 @@ def parse_scalar(value: str) -> Any:
 
 def load_skill_info(skill_bank: Path, model: str) -> dict[str, Any]:
     """Load top-level model metadata from references/skill_info.yaml."""
-    path = skill_bank.expanduser() / "models" / model / "references" / "skill_info.yaml"
+    path = skill_bank.expanduser() / "skills" / "models" / model / "references" / "skill_info.yaml"
     if not path.exists():
         return {}
 
@@ -113,7 +113,7 @@ def load_skill_info(skill_bank: Path, model: str) -> dict[str, Any]:
 
 def skill_info_actions(skill_bank: Path, model: str) -> list[str]:
     """Read action names from a model skill_info.yaml without a YAML dependency."""
-    path = skill_bank.expanduser() / "models" / model / "references" / "skill_info.yaml"
+    path = skill_bank.expanduser() / "skills" / "models" / model / "references" / "skill_info.yaml"
     if not path.exists():
         return []
 
@@ -135,8 +135,8 @@ def skill_info_actions(skill_bank: Path, model: str) -> list[str]:
 
 
 def load_model_schema_manifest(skill_bank: Path, model: str) -> dict[str, Any]:
-    """Load models/<model>/schemas/manifest.json when shipped."""
-    path = skill_bank.expanduser() / "models" / model / "schemas" / "manifest.json"
+    """Load skills/models/<model>/schemas/manifest.json when shipped."""
+    path = skill_bank.expanduser() / "skills" / "models" / model / "schemas" / "manifest.json"
     if not path.exists():
         return {}
     return load_json(path)
@@ -144,7 +144,7 @@ def load_model_schema_manifest(skill_bank: Path, model: str) -> dict[str, Any]:
 
 def train_schema_status(skill_bank: Path, model: str) -> tuple[bool, str]:
     """Return whether a model has a valid packaged train dataclass schema."""
-    schema_path = skill_bank.expanduser() / "models" / model / TRAIN_SCHEMA_REL
+    schema_path = skill_bank.expanduser() / "skills" / "models" / model / TRAIN_SCHEMA_REL
     if not schema_path.exists():
         return False, f"{TRAIN_SCHEMA_REL.as_posix()} is not packaged"
 
@@ -166,9 +166,9 @@ def build_model_records(skill_bank: Path) -> list[dict[str, Any]]:
     global_manifest = load_schema_manifest(skill_bank)
     manifest_models = global_manifest.get("models", {})
     if not isinstance(manifest_models, dict):
-        raise ValueError("models/schemas.manifest.json is missing a models object")
+        raise ValueError("skills/models/schemas.manifest.json is missing a models object")
 
-    models_root = skill_bank / "models"
+    models_root = skill_bank / "skills" / "models"
     model_names = set(manifest_models)
     model_names.update(
         item.name
@@ -227,7 +227,7 @@ def build_all_models(skill_bank: Path) -> dict[str, Any]:
     """Return packaged model/action support."""
     return {
         "schema_version": 1,
-        "source": "models/schemas.manifest.json",
+        "source": "skills/models/schemas.manifest.json",
         "models": build_model_records(skill_bank),
     }
 
@@ -295,9 +295,9 @@ def build_automl_support(skill_bank: Path) -> dict[str, Any]:
     return {
         "schema_version": 1,
         "source": [
-            "models/<network>/references/skill_info.yaml",
-            "models/<network>/schemas/manifest.json",
-            "models/<network>/schemas/train.schema.json",
+            "skills/models/<network>/references/skill_info.yaml",
+            "skills/models/<network>/schemas/manifest.json",
+            "skills/models/<network>/schemas/train.schema.json",
         ],
         "support_rule": SUPPORT_RULE,
         "supported": supported,
@@ -316,7 +316,7 @@ def train_action_metadata(skill_bank: Path, model: str) -> dict[str, Any]:
             "automl_default_parameters": train.get("automl_default_parameters", []),
         }
 
-    train_schema = skill_bank.expanduser() / "models" / model / TRAIN_SCHEMA_REL
+    train_schema = skill_bank.expanduser() / "skills" / "models" / model / TRAIN_SCHEMA_REL
     if train_schema.exists():
         schema = load_json(train_schema)
         return {

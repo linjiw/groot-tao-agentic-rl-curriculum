@@ -14,8 +14,8 @@
 #   3. Surface clear setup hints if docker is missing.
 #
 # This hook does NOT install Python packages. The TAO SDK is opt-in and
-# installed lazily by the skills that need it (platform/tao-run-on-lepton, platform/tao-run-platform,
-# applications/tao-run-automl) via their Preflight blocks.
+# installed lazily by the skills that need it (skills/platform/tao-run-on-lepton, skills/platform/tao-run-platform,
+# skills/applications/tao-run-automl) via their Preflight blocks.
 
 set -u
 

@@ -11,12 +11,12 @@ need no Python.
 
 ## Discovery flow
 
-0. **Preflight the chosen platform.** Open `platform/<chosen>/SKILL.md` and run
+0. **Preflight the chosen platform.** Open `skills/platform/<chosen>/SKILL.md` and run
    its Preflight section. Bail if anything's missing — do not draft launch
    commands against an unconfigured environment.
 
-1. **Read the task skill.** `models/<arch>/SKILL.md` (network specifics),
-   `data/<name>/SKILL.md` (transforms), or `applications/<name>/SKILL.md`
+1. **Read the task skill.** `skills/models/<arch>/SKILL.md` (network specifics),
+   `skills/data/<name>/SKILL.md` (transforms), or `skills/applications/<name>/SKILL.md`
    (workflows that compose model + data + platform — `tao-run-automl`,
    `tao-run-deft-aoi`, etc.). Get the model facts, data format, action
    parameters, and known error patterns.

@@ -5,7 +5,7 @@
 """Resolve a dotted key in versions.yaml to a string value.
 
 Single-purpose companion to ``resolve_tao_image.py``: that tool resolves an
-image via ``models/<name>/references/skill_info.yaml``, this one resolves a
+image via ``skills/models/<name>/references/skill_info.yaml``, this one resolves a
 direct key path in ``versions.yaml``. Use it in shell scripts and skill
 docs so the YAML schema is known in exactly one place.
 

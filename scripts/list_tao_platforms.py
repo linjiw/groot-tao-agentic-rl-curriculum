@@ -16,7 +16,7 @@ from typing import Any
 DEFAULT_SKILL_BANK = Path(
     os.environ.get("TAO_SKILL_BANK_PATH", Path.home() / "tao-skills-external")
 )
-MANIFEST_REL = Path("platform") / "platforms.manifest.json"
+MANIFEST_REL = Path("skills") / "platform" / "platforms.manifest.json"
 
 
 def parse_args() -> argparse.Namespace:
@@ -56,7 +56,7 @@ def supported_platforms(skill_bank: Path) -> list[dict[str, Any]]:
     manifest = load_platform_manifest(skill_bank)
     platforms = manifest.get("platforms", [])
     if not isinstance(platforms, list):
-        raise ValueError("platform/platforms.manifest.json is missing a platforms list")
+        raise ValueError("skills/platform/platforms.manifest.json is missing a platforms list")
     return [item for item in platforms if isinstance(item, dict)]
 
 

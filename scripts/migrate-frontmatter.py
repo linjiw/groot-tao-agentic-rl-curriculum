@@ -99,10 +99,10 @@ def compatibility_for(skill_path: str) -> str:
 # Skills that orchestrate workflows and persist state files — need `Write`.
 # Most other skills only read inputs and shell out (Bash for docker / python / aws).
 _ORCHESTRATOR_PATHS = {
-    "applications/tao-run-deft-aoi",
-    "applications/deft-vcn-aoi",
-    "applications/tao-run-automl",
-    "applications/tao-train-single-step",
+    "skills/applications/tao-run-deft-aoi",
+    "skills/applications/deft-vcn-aoi",
+    "skills/applications/tao-run-automl",
+    "skills/applications/tao-train-single-step",
 }
 
 

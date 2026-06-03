@@ -25,7 +25,7 @@ fi
 
 echo
 echo "=== 2. NVIDIA GPU runtime + Docker + NGC login"
-bash platform/tao-setup-nvidia-gpu-host/scripts/setup-nvidia-gpu-host.sh --backend docker --check-only
+bash skills/platform/tao-setup-nvidia-gpu-host/scripts/setup-nvidia-gpu-host.sh --backend docker --check-only
 docker --version
 docker run --rm --runtime=nvidia --gpus all ubuntu nvidia-smi >/dev/null && echo "  OK: GPU + toolkit"
 grep -q 'nvcr.io' ~/.docker/config.json 2>/dev/null && echo "  OK: NGC login present" || {
@@ -36,8 +36,8 @@ grep -q 'nvcr.io' ~/.docker/config.json 2>/dev/null && echo "  OK: NGC login pre
 echo
 echo "=== 3. Read tao-train-visual-changenet metadata from the skill bank"
 INFO_FILE=""
-for f in models/tao-train-visual-changenet/references/skill_info.yaml \
-         models/tao-train-visual-changenet/references/model_info.yaml; do
+for f in skills/models/tao-train-visual-changenet/references/skill_info.yaml \
+         skills/models/tao-train-visual-changenet/references/model_info.yaml; do
   [ -f "$f" ] && INFO_FILE="$f" && break
 done
 
