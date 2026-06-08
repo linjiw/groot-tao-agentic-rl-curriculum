@@ -12,7 +12,7 @@ license: Apache-2.0
 compatibility: Runs `--check-only` on any Linux distribution. `--install` automates Ubuntu 22.04/24.04 + Debian 12 (apt), Fedora + RHEL/Rocky/AlmaLinux 9/10 (dnf), and openSUSE Leap / SLES 15 (zypper). Requires sudo/root, internet access to NVIDIA package repositories (and download.docker.com on rhel-family), and an x86_64 or aarch64 (sbsa) host. Other distributions (Arch, Alpine, Gentoo, NixOS, …) get a clear error that names the version targets and the NVIDIA install-guide URL.
 metadata:
   author: NVIDIA Corporation
-  version: '0.1'
+  version: "0.1.0"
 allowed-tools: Read Bash
 tags:
 - setup
@@ -59,12 +59,25 @@ From the skill bank root:
 # Check the local Docker backend host.
 bash skills/platform/tao-setup-nvidia-gpu-host/scripts/setup-nvidia-gpu-host.sh --backend docker --check-only
 
-# Install or repair after user approval.
-bash skills/platform/tao-setup-nvidia-gpu-host/scripts/setup-nvidia-gpu-host.sh --backend docker --install --yes
+# Install or repair after user approval (prompts for confirmation; see the note below for non-interactive runs).
+bash skills/platform/tao-setup-nvidia-gpu-host/scripts/setup-nvidia-gpu-host.sh --backend docker --install
 
 # Check a Kubernetes GPU worker host.
 bash skills/platform/tao-setup-nvidia-gpu-host/scripts/setup-nvidia-gpu-host.sh --backend kubernetes --check-only
 ```
+
+> ⚠️ **Note — running non-interactively (agent / skill runs):** a skill run has
+> no terminal, so the installer's `Continue? [y/N]` confirmation cannot be
+> answered. After running `--check-only` to preview what is missing and getting
+> the user's explicit approval, append the assume-yes flag (`--yes`) to the
+> `--install` command so it proceeds without a prompt. That auto-confirms
+> installation of system packages (NVIDIA driver branch 580, CUDA Toolkit 13.0,
+> NVIDIA Container Toolkit, and — for Docker backends — Docker) and modifies the
+> host: it adds NVIDIA package repositories, may restart Docker, and adds the
+> invoking user to the `docker` group, so only do this on a host you control and
+> have the privileges to change. When a person runs `--install` directly at a
+> terminal, the script instead prompts with the exact package list before making
+> any changes.
 
 In an installed plugin copy that exposes `skills/`, use:
 
@@ -82,8 +95,8 @@ SETUP_SCRIPT="${TAO_SKILL_BANK_ROOT:-$PWD}/skills/tao-setup-nvidia-gpu-host/scri
 
 bash "$SETUP_SCRIPT" --backend docker --check-only || {
   echo "MISSING: TAO GPU host runtime is not ready."
-  echo "After user approval, run:"
-  echo "  bash \"$SETUP_SCRIPT\" --backend docker --install --yes"
+  echo "After user approval, run (append --yes for non-interactive agent runs):"
+  echo "  bash \"$SETUP_SCRIPT\" --backend docker --install"
   exit 1
 }
 ```
