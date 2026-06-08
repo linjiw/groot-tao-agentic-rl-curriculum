@@ -40,7 +40,6 @@
         "./skills/models/tao-train-dino",
         "./skills/models/tao-train-grounding-dino",
         "./skills/models/tao-train-mask-auto-encoder",
-        "./skills/models/tao-train-mask-auto-encoder/deploy",
         "./skills/models/tao-train-mask-auto-label",
         "./skills/models/tao-train-mask-grounding-dino",
         "./skills/models/tao-train-mask-grounding-dino/deploy",
