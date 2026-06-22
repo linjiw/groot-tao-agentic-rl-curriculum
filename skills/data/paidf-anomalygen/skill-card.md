@@ -1,5 +1,5 @@
 ## Description: <br>
-Visual ChangeNet for binary image classification and segmentation in AOI defect detection. <br>
+Full PAIDF AnomalyGen pipeline — fine-tune on a new anomaly dataset, generate synthetic anomaly images (SDG), evaluate quality (nn_score), and search per-sample (guidance, crop_ratio) parameters. <br>
 
 This skill is ready for commercial/non-commercial use. <br>
 
@@ -9,7 +9,7 @@ NVIDIA <br>
 ### License/Terms of Use: <br>
 Apache 2.0 <br>
 ## Use Case: <br>
-Developers and engineers training, evaluating, and deploying Visual ChangeNet models for automated optical inspection (AOI) defect detection and PCB visual inspection tasks. <br>
+Developers and engineers who need to fine-tune AnomalyGen models on custom anomaly datasets and generate synthetic anomaly images for manufacturing defect inspection workflows. <br>
 
 ### Deployment Geography for Use: <br>
 Global <br>
@@ -19,16 +19,17 @@ Risk: Review before execution as proposals could introduce incorrect or misleadi
 Mitigation: Review and scan skill before deployment. <br>
 
 ## Reference(s): <br>
-- [Data Formats](references/data-formats.md) <br>
-- [Tuning Parameters](references/tuning-parameters.md) <br>
-- [Troubleshooting](references/troubleshooting.md) <br>
-- [Local Docker Usage](references/local-docker.md) <br>
-- [TAO Deploy Visual ChangeNet](references/tao-deploy-visual-changenet.md) <br>
-- [Parent Model Inference](references/parent-model-inference.md) <br>
+- [finetune.md](references/finetune.md) <br>
+- [inference.md](references/inference.md) <br>
+- [docker.md](references/docker.md) <br>
+- [datasets.md](references/datasets.md) <br>
+- [output-layout.md](references/output-layout.md) <br>
+- [error-handling.md](references/error-handling.md) <br>
+- [setup.md](references/setup.md) <br>
 
 
 ## Skill Output: <br>
-**Output Type(s):** [Shell commands, Configuration instructions] <br>
+**Output Type(s):** [Shell commands, Configuration instructions, Analysis] <br>
 **Output Format:** [Markdown with inline bash code blocks] <br>
 **Output Parameters:** [1D] <br>
 **Other Properties Related to Output:** [None] <br>
@@ -40,7 +41,7 @@ Mitigation: Review and scan skill before deployment. <br>
 
 
 ## Evaluation Tasks: <br>
-Evaluated against 1 internal skill evaluation task (positive activation). <br>
+Evaluated against 1 evaluation task in the NVSkills-Eval external profile (astra-sandbox environment). <br>
 
 ## Evaluation Metrics Used: <br>
 Reported benchmark dimensions: <br>
@@ -65,10 +66,10 @@ Underlying evaluation signals used in this run: <br>
 | Dimension | Num | `claude-code` | `codex` |
 |---|---:|---:|---:|
 | Security | 1 | 100% (+0%) | 100% (+0%) |
-| Correctness | 1 | 100% (+50%) | 97% (+77%) |
+| Correctness | 1 | 90% (+90%) | 97% (+97%) |
 | Discoverability | 1 | 100% (+100%) | 97% (+97%) |
-| Effectiveness | 1 | 64% (-2%) | 86% (+42%) |
-| Efficiency | 1 | 95% (+68%) | 96% (+68%) |
+| Effectiveness | 1 | 60% (+50%) | 90% (+66%) |
+| Efficiency | 1 | 95% (+67%) | 96% (+68%) |
 
 ## Skill Version(s): <br>
 0.1.0 (source: frontmatter) <br>

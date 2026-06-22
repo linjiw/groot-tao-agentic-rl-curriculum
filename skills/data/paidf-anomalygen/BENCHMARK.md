@@ -1,12 +1,12 @@
 # Evaluation Report
 
-Evaluation of the `tao-analyze-changenet-rca` skill before publication through NVSkills-Eval.
+Evaluation of the `paidf-anomalygen` skill before publication through NVSkills-Eval.
 
 This benchmark summarizes 3-Tier Evaluation from NVSkills-Eval results for the skill. The goal is to document whether the skill is safe, discoverable, effective, and useful for agents before it is published for broader workflow use.
 
 ## Evaluation Summary
 
-- Skill: `tao-analyze-changenet-rca`
+- Skill: `paidf-anomalygen`
 - Evaluation date: 2026-06-20
 - NVSkills-Eval profile: `external`
 - Environment: `astra-sandbox`
@@ -55,24 +55,23 @@ Task composition is derived from the evaluation dataset when possible. Entries w
 | Dimension | Num | `claude-code` | `codex` |
 |---|---:|---:|---:|
 | Security | 1 | 100% (+0%) | 100% (+0%) |
-| Correctness | 1 | 100% (+100%) | 97% (+97%) |
-| Discoverability | 1 | 89% (+89%) | 97% (+97%) |
-| Effectiveness | 1 | 100% (+86%) | 90% (+66%) |
-| Efficiency | 1 | 73% (+46%) | 96% (+68%) |
+| Correctness | 1 | 90% (+90%) | 97% (+97%) |
+| Discoverability | 1 | 100% (+100%) | 97% (+97%) |
+| Effectiveness | 1 | 60% (+50%) | 90% (+66%) |
+| Efficiency | 1 | 95% (+67%) | 96% (+68%) |
 
 Score values show skill-assisted performance. Values in parentheses show uplift versus the no-skill baseline when baseline data is available.
 
 ## Tier 1: Static Validation Summary
 
-Tier 1 validation passed with observations. NVSkills-Eval ran 1 checks and found 5 total findings.
+Tier 1 validation passed with observations. NVSkills-Eval ran 1 checks and found 4 total findings.
 
 Top findings:
 
-- MEDIUM SCHEMA/folder_hierarchy: Unexpected nesting depth for general skill (`skills/applications/tao-analyze-changenet-rca`)
-- MEDIUM SCHEMA/body_recommended_section: Missing recommended section: '## Instructions' (`skills/applications/tao-analyze-changenet-rca/SKILL.md`)
-- MEDIUM SCHEMA/body_recommended_section: Missing recommended section: '## Examples' (`skills/applications/tao-analyze-changenet-rca/SKILL.md`)
-- LOW SCHEMA/unexpected_file: Unexpected 'hooks' in skill root (`skills/applications/tao-analyze-changenet-rca/hooks`)
-- LOW SCHEMA/author_format: Author must be of the form 'Name <email@host>' (`skills/applications/tao-analyze-changenet-rca/SKILL.md`)
+- MEDIUM SCHEMA/folder_hierarchy: Unexpected nesting depth for general skill (`skills/data/paidf-anomalygen`)
+- MEDIUM SCHEMA/body_recommended_section: Missing recommended section: '## Instructions' (`skills/data/paidf-anomalygen/SKILL.md`)
+- MEDIUM SCHEMA/body_recommended_section: Missing recommended section: '## Examples' (`skills/data/paidf-anomalygen/SKILL.md`)
+- LOW SCHEMA/author_format: Author must be of the form 'Name <email@host>' (`skills/data/paidf-anomalygen/SKILL.md`)
 
 ## Tier 2: Deduplication Summary
 
