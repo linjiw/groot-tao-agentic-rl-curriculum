@@ -8,8 +8,11 @@ A research-design repository that **combines** NVIDIA's [TAO skill bank](https:/
 
 ## What's here
 
+> 📌 **Picking up where we left off?** Start at [`docs/progress/NEXT.md`](docs/progress/NEXT.md) for the rolling next-step plan, and [`docs/progress/`](docs/progress) for dated logs.
+
 ```
 .
+├── docs/progress/            ← daily logs + NEXT.md (resume here)
 ├── docs/design/              ← THE DESIGN PLAN (start at 00-overview.md)
 │   ├── 00-overview.md
 │   ├── 01-how-groot-works.md
