@@ -1,0 +1,60 @@
+diff --git a/gear_sonic/envs/manager_env/mdp/curriculum.py b/gear_sonic/envs/manager_env/mdp/curriculum.py
+index 8992c4c..171afdc 100644
+--- a/gear_sonic/envs/manager_env/mdp/curriculum.py
++++ b/gear_sonic/envs/manager_env/mdp/curriculum.py
+@@ -30,6 +30,9 @@ class CurriculumCfg:
+ 
+     force_push_curriculum = None
+     force_push_linear_curriculum = None
++    anchor_pos_threshold_curriculum = None
++    ee_body_pos_threshold_curriculum = None
++    foot_pos_xyz_threshold_curriculum = None
+ 
+ 
+ def terrain_levels_vel(
+@@ -106,3 +109,26 @@ def linear_curriculum(env, env_ids, original_value, values, num_steps):
+ 
+     # After last milestone → final value
+     return values[-1]
++
++
++def step_curriculum_nochange(env, env_ids, original_value, values, num_steps):
++    """step_curriculum variant that returns ``modify_env_param.NO_CHANGE`` unless
++    the target threshold for the current step differs from the live value.
++
++    Avoids a redundant per-step setter write while preserving step_curriculum's
++    milestone semantics (highest passed milestone wins; before the first
++    milestone the live value is left untouched).
++    """
++    from isaaclab.envs.mdp.curriculums import modify_env_param
++
++    assert len(values) == len(num_steps)
++    step = env.common_step_counter
++    target = None
++    for i in range(len(values)):
++        idx = len(num_steps) - i - 1
++        if step > num_steps[idx]:
++            target = values[idx]
++            break
++    if target is None or original_value == target:
++        return modify_env_param.NO_CHANGE
++    return target
+diff --git a/gear_sonic/envs/manager_env/modular_tracking_env_cfg.py b/gear_sonic/envs/manager_env/modular_tracking_env_cfg.py
+index 9a6f399..b898bfe 100644
+--- a/gear_sonic/envs/manager_env/modular_tracking_env_cfg.py
++++ b/gear_sonic/envs/manager_env/modular_tracking_env_cfg.py
+@@ -1039,3 +1039,14 @@ class ModularTrackingEnvCfg(ManagerBasedRLEnvCfg):
+             self.curriculum.force_push_linear_curriculum.params["modify_fn"] = getattr(
+                 module, "linear_curriculum"
+             )
++
++        for _curr_name in (
++            "anchor_pos_threshold_curriculum",
++            "ee_body_pos_threshold_curriculum",
++            "foot_pos_xyz_threshold_curriculum",
++        ):
++            if hasattr(self.curriculum, _curr_name) and getattr(self.curriculum, _curr_name):
++                module = importlib.import_module("gear_sonic.envs.manager_env.mdp")
++                getattr(self.curriculum, _curr_name).params["modify_fn"] = getattr(
++                    module, "step_curriculum_nochange"
++                )

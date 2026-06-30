@@ -9,6 +9,20 @@ Confirm that `gear_sonic/envs/manager_env/mdp/terminations.py` reads `params.thr
 
 ➡️ **If thresholds are cached at setup, this experiment is inert** and must instead schedule via `config.trainer.schedule_dict`.
 
+> **✅ VERIFIED (2026-06-30, against pinned source).** `TerminationManager.compute()`
+> (`external/IsaacLab/.../managers/termination_manager.py:167`) calls
+> `term_cfg.func(self._env, **term_cfg.params)` — reading `params` **fresh every step** — and
+> `set_term_cfg`/`get_term_cfg` exist. The `gear_sonic` termination funcs take `threshold` as a
+> live kwarg. **Stage 2 is viable.** Full record + two doc corrections in
+> [`../../experiments/stage2-termination-curriculum/00-env-and-step0-verification.md`](../../experiments/stage2-termination-curriculum/00-env-and-step0-verification.md).
+>
+> **Corrections found during verification:** `modify_term_cfg` is an **IsaacLab** primitive
+> (`isaaclab.envs.mdp.curriculums`), re-exported into the `gear_sonic` mdp namespace — not a
+> `gear_sonic` function. Its `s.`-shorthand rewrites the first `terminations.` →
+> `termination_manager.cfg.`. The `modify_fn` signature is `(env, env_ids, old_value,
+> **modify_params)` and should return `NO_CHANGE` to skip redundant writes; the ready-to-apply
+> patch ships a `step_curriculum_nochange` helper for that.
+
 ## Step 1 — Extend the curriculum dataclass
 In `gear_sonic/envs/manager_env/mdp/curriculum.py` (currently only `force_push_curriculum` / `force_push_linear_curriculum`), add fields:
 - `anchor_pos_threshold_curriculum`
