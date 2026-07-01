@@ -54,9 +54,13 @@ Lower priority than ①②, but keeps the box productive. Same proven loop: **ve
 2. **Stage 1 — PLR/regret sampler.** Verify per-step bin-id registration in `RolloutStorage` (`register_key`); build a `MotionLibBase` subclass swapping score to `(1-ρ)·regret + ρ·staleness` + a unit test of the scoring math.
 
 ## NEW TRACK — reverse transfer (GR00T → TAO), see §5 of the review doc
-Feasible-now, no cluster needed:
-1. **`tao-curriculum-rl` workflow skill (scaffold).** Curriculum-over-SFT using verified seams `data.ds_weights_alpha` (`factory.py:78–85`) + `Gr00tTrainer.compute_loss` override (`trainer.py:254–275`); adopt SONIC's `schedule_dict` `@`-path format; stage transitions via `autoresearch`/`eval_fn`. RL mode reported *blocked* until a verifier reward exists + `train.train_policy.type` enum is unlocked (`train.schema.json:1139–1147`).
-2. **VLM verifier spike (RLVR).** Rule verifier over grounded/structured QA using existing TAO data skills (`tao-generate-referring-expressions`, `-image-grounding`, `-video-reasoning-annotations`). This is the one genuinely missing piece — the reward.
+Feasible-now, no cluster needed. **Status: first three pieces DONE + verified this session** (Exp③ token-lattice was NO-GO — see below — which is *why* this track was prioritized).
+1. ✅ **`tao-curriculum-rl` workflow skill (scaffold)** — landed at `skills/agentic/tao-curriculum-rl/SKILL.md` (+ `references/seams.md`). Curriculum-over-SFT using verified seams `data.ds_weights_alpha` (`factory.py:78`) + `Gr00tTrainer.compute_loss` override (`trainer.py:254`); RL mode reported *blocked* until a verifier reward exists + `train.train_policy.type` enum unlocked (`train.schema.json:1139–1144`, enum==`["sft"]` **[verified]**).
+2. ✅ **KL-adaptive-LR + `schedule_dict` port** — `experiments/reverse-transfer-lr-curriculum/` (`kl_adaptive_lr.py`, `curriculum_schedule.py`, tests). Faithful port of SONIC `_adjust_learning_rate_based_on_kl` (`ppo_trainer.py:2142–2166`) + `update_scheduled_params` (`gear_sonic/trl/utils/scheduler.py:296`). **19/19 pytest passing [measured, re-run by parent].**
+3. ✅ **VLM verifier spike (RLVR)** — `experiments/rlvr-verifier-reward/` (`verifiers.py`: MC/numeric/IoU/ref-exp; `rlvr_demo.py` toy REINFORCE; tests). **24/24 pytest passing; demo reward curves improve** (MC 0.438→0.991, numeric 0.090→0.728) **[measured, re-run by parent]**. This was the one genuinely missing piece — the reward — now shown concretely implementable on CPU.
+
+### Exp③ verdict — trained-VLA token-lattice distance: **NO-GO (external dep)**
+`experiments/vla-token-lattice-distance/` + `experiments/sonic-teacher-token-reference/`. The core measurement is **blocked locally**: no sonic-finetuned GR00T VLA exists on this box (only generic `GR00T-N1.7-3B` with a 132-d flow-matching head — `unitree_g1_sonic` absent from all 4 checkpoint surfaces; network gated 401). Teacher tokens confirmed **exactly on-lattice** (0.0 steps, 3,606 real tokens). Combined with Exp① (snap recovers within ±½ step), the open question — *does a trained sonic VLA's emission drift exceed ½ step?* — is answerable **only with a sonic-finetuned checkpoint we don't have.** Recorded as an external dependency, not a local task.
 
 ---
 

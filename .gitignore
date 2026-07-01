@@ -9,3 +9,8 @@ experiments/**/out/*.safetensors
 experiments/**/out/*.bin
 experiments/**/out/*.pt
 *.safetensors
+
+# Python / pytest cruft
+__pycache__/
+*.pyc
+.pytest_cache/
