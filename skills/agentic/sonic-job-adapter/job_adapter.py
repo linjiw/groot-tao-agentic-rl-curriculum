@@ -89,14 +89,21 @@ def build_train_command(
     steps_per_env: int = 16,
     save_last_frequency: int = 10,
     log_path: Optional[str] = None,
+    seed: int = 42,
 ) -> List[str]:
-    """The docker-exec launch, exactly as verified in infra-guide.md."""
+    """The docker-exec launch, exactly as verified in infra-guide.md.
+
+    `seed` is pinned explicitly: arm-comparison experiments depend on
+    identical-prefix segments, which must not rest on an unpinned config
+    default (review finding 7).
+    """
     parts = [
         f"cd {WBC_DIR} &&",
         "nohup" if log_path else "",
         PYTHON_SH, "gear_sonic/train_agent_trl.py",
         EXP_CONFIG,
         f"num_envs={num_envs}",
+        f"seed={seed}",
         "headless=true",
         "use_wandb=false",
         f"project_name={project_name}",

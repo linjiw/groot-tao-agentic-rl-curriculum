@@ -1,0 +1,106 @@
+[
+  {
+    "tick": 1,
+    "segment": "manager_s1",
+    "knobs_in": {},
+    "rew_mean_last": 0.90891,
+    "len_mean_last": 11.57,
+    "decision": {
+      "action": "none",
+      "reason": "len [11.6] inside [20.0, 200.0] band or sustain unmet"
+    }
+  },
+  {
+    "tick": 2,
+    "segment": "manager_s2",
+    "knobs_in": {},
+    "rew_mean_last": 1.11282,
+    "len_mean_last": 13.9,
+    "decision": {
+      "action": "set",
+      "knob": "termination_threshold.ee_body_pos",
+      "value": 0.35,
+      "rationale": "mean episode length [11.6, 13.9] < 20.0 for 2 segments; termination_threshold.ee_body_pos is the binding termination axis (windowed mean 0.55 of episodes; training-side signal; no held-out here)",
+      "expected_effect": "episodes lengthen; Episode/len_mean rises next segment",
+      "tripwire": {
+        "metric": "Episode/rew_mean",
+        "drop_pct": 20,
+        "evals": 2
+      }
+    },
+    "validation": {
+      "ok": true,
+      "errors": []
+    },
+    "applied": true,
+    "outcome": "survived"
+  },
+  {
+    "tick": 3,
+    "segment": "manager_s3",
+    "knobs_in": {
+      "termination_threshold.ee_body_pos": 0.35
+    },
+    "rew_mean_last": 1.0668,
+    "len_mean_last": 14.2,
+    "decision": {
+      "action": "none",
+      "reason": "pending decision on termination_threshold.ee_body_pos still under tripwire watch (one change at a time)"
+    }
+  },
+  {
+    "tick": 4,
+    "segment": "manager_s4",
+    "knobs_in": {
+      "termination_threshold.ee_body_pos": 0.35
+    },
+    "rew_mean_last": 1.08324,
+    "len_mean_last": 14.95,
+    "decision": {
+      "action": "set",
+      "knob": "termination_threshold.foot_pos_xyz",
+      "value": 0.4,
+      "rationale": "mean episode length [13.9, 14.9] < 20.0 for 2 segments; termination_threshold.foot_pos_xyz is the binding termination axis (windowed mean 0.84 of episodes; training-side signal; no held-out here)",
+      "expected_effect": "episodes lengthen; Episode/len_mean rises next segment",
+      "tripwire": {
+        "metric": "Episode/rew_mean",
+        "drop_pct": 20,
+        "evals": 2
+      }
+    },
+    "validation": {
+      "ok": true,
+      "errors": []
+    },
+    "applied": true,
+    "outcome": "survived"
+  },
+  {
+    "tick": 5,
+    "segment": "manager_s5",
+    "knobs_in": {
+      "termination_threshold.ee_body_pos": 0.35,
+      "termination_threshold.foot_pos_xyz": 0.4
+    },
+    "rew_mean_last": 1.48426,
+    "len_mean_last": 22.43,
+    "decision": {
+      "action": "none",
+      "reason": "pending decision on termination_threshold.foot_pos_xyz still under tripwire watch (one change at a time)"
+    }
+  },
+  {
+    "tick": 6,
+    "segment": "manager_s6",
+    "knobs_in": {
+      "termination_threshold.ee_body_pos": 0.35,
+      "termination_threshold.foot_pos_xyz": 0.4
+    },
+    "rew_mean_last": 1.32862,
+    "len_mean_last": 21.07,
+    "decision": {
+      "action": "none",
+      "reason": "len [14.9, 21.1] inside [20.0, 200.0] band or sustain unmet"
+    }
+  }
+]

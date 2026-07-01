@@ -40,7 +40,8 @@ from typing import Any, Dict, Iterable, List, Optional
 
 SCHEMA_VERSION = "0.1.0"
 
-# trainer keys we summarize (last value + short trend); Episode/* handled by prefix
+# trainer keys we summarize (last value + short trend); other Episode/* terms
+# land in episode_terms_last by prefix
 TRAIN_SCALAR_KEYS = (
     "policy/approxkl_avg",
     "loss/entropy_avg",
@@ -49,6 +50,8 @@ TRAIN_SCALAR_KEYS = (
     "lr",
     "Policy/mean_noise_std",
     "fps",
+    "Episode/rew_mean",
+    "Episode/len_mean",
 )
 
 
@@ -215,6 +218,23 @@ def build_train_section(train_records: List[Dict[str, Any]], window: int) -> Opt
         if k.startswith("Episode/") and isinstance(v, (int, float))
     }
     section["episode_terms_last"] = dict(sorted(episode_terms.items())) or None
+    # per-term termination fractions (which threshold is binding?) — last
+    # value plus a windowed mean (single-iteration fractions are noisy at
+    # small env counts; axis-selection decisions should use the mean)
+    termination_terms = {
+        k.split("/", 1)[1]: v
+        for k, v in last.items()
+        if k.startswith("Episode_Termination/") and isinstance(v, (int, float))
+    }
+    section["termination_terms_last"] = dict(sorted(termination_terms.items())) or None
+    recent = train_records[-window:]
+    term_means: Dict[str, float] = {}
+    for term in termination_terms:
+        vals = [r[f"Episode_Termination/{term}"] for r in recent
+                if isinstance(r.get(f"Episode_Termination/{term}"), (int, float))]
+        if vals:
+            term_means[term] = _mean(vals)
+    section["termination_terms_mean_recent"] = dict(sorted(term_means.items())) or None
     scheduled = {
         k.split("/", 1)[1]: v
         for k, v in last.items()

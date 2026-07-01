@@ -1,0 +1,46 @@
+[
+  {
+    "tick": 1,
+    "segment": "control_s1",
+    "knobs_in": {},
+    "rew_mean_last": 0.83542,
+    "len_mean_last": 10.11,
+    "decision": {
+      "action": "none",
+      "reason": "control arm"
+    }
+  },
+  {
+    "tick": 2,
+    "segment": "control_s2",
+    "knobs_in": {},
+    "rew_mean_last": 0.86305,
+    "len_mean_last": 10.53,
+    "decision": {
+      "action": "none",
+      "reason": "control arm"
+    }
+  },
+  {
+    "tick": 3,
+    "segment": "control_s3",
+    "knobs_in": {},
+    "rew_mean_last": 0.87011,
+    "len_mean_last": 11.45,
+    "decision": {
+      "action": "none",
+      "reason": "control arm"
+    }
+  },
+  {
+    "tick": 4,
+    "segment": "control_s4",
+    "knobs_in": {},
+    "rew_mean_last": 0.88512,
+    "len_mean_last": 11.17,
+    "decision": {
+      "action": "none",
+      "reason": "control arm"
+    }
+  }
+]

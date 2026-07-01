@@ -114,11 +114,18 @@ dep (`vector_quantize_pytorch`). `sonic_release/last.pt` downloaded; full bones-
    raise). See `experiments/curriculum-manager-phase2/RESULTS.md`. Also new:
    `docs/infra-guide.md` (how to use the container infra).
 4. Held-out watcher wiring via `filter_motion_keys` + eval terminations config.
-5. The 256-env smoke comparison: manager ON vs OFF vs hand-schedule (doc 08 §8).
-   All mechanical pieces now exist (digest ← parse_segment, policy, registry,
-   adapter segments); the composition is a ~100-line driver. **Meaningful**
-   comparison still gated on bones-seed access (2 motions = degenerate held-out
-   split; training-side-only comparison possible today).
+5. ✅ **ON-vs-OFF smoke: RUN (mechanism level, 2026-07-01 part 5)** —
+   `experiments/curriculum-manager-phase2/smoke_driver.py` + `SMOKE_RESULTS.md`
+   (13 driver tests; repo suite 144). 6 segments × 10 iters × 64 envs per arm,
+   pinned seed, live on the A10G. Manager applied 2 binding-axis loosens (both
+   `survived` their tripwire watch), pending-decision gate held, first decision
+   cleanly attributable (identical prefix → divergence at first change).
+   **Went through 2 adversarial-review rounds** (project-aware reviewer agent,
+   verdict: COMMIT): caught the v1 binding-axis no-op (anchor_pos never fires;
+   loosening it changed nothing) and the v1 overlapping-tripwire bug — both
+   fixed + re-run. Explicitly NOT evidence of training improvement (len/rew
+   gains partly definitional; protected metric not exercised at 2 motions).
+   The reviewer's residual findings are the doc's Next items 4–6.
 (Resolved: container WBC clone IS our pinned commit 0e35637 — verified.)
 
 ## PARALLEL BUILD TRACK (launch-ready patches for a future cluster)
