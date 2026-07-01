@@ -30,6 +30,7 @@ This repository is a fork of [`NVIDIA-TAO/tao-skills-bank`](https://github.com/N
 - [`05-flagship-experiment.md`](05-flagship-experiment.md) — the concrete first experiment, runnable on this stack.
 - [`06-risks-and-open-questions.md`](06-risks-and-open-questions.md) — verified risks, gaps, and open questions.
 - [`07-review-and-revised-roadmap.md`](07-review-and-revised-roadmap.md) — multi-agent adversarial review; revised experiment ordering (A10G-runnable de-risking first, Stage-2 demoted to "when cluster exists"); prioritized TAO↔GR00T transfers.
+- [`08-curriculum-manager-agent.md`](08-curriculum-manager-agent.md) — the Curriculum-Manager Agent: an LLM supervising a live SONIC PPO run at checkpoint cadence via bounded, schema-validated knob deltas over SONIC's existing adaptive controllers; two-tier architecture, verified read/write surfaces, TAO-style skill decomposition, hardware-honest phased build.
 - [`ABSTRACT.md`](ABSTRACT.md) — abstract + introduction for the project write-up.
 
 ## Licensing & attribution

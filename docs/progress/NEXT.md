@@ -48,6 +48,36 @@ Still the flagship — demoted to "when cluster exists." **Before** burning GPU:
 
 ---
 
+## NEW DESIGN — Curriculum-Manager Agent (2026-07-01)
+`../design/08-curriculum-manager-agent.md` — the project's organizing design: an LLM agent
+supervising a live SONIC run at checkpoint cadence, tuning meta-parameters of SONIC's
+existing adaptive controllers (sampler floor/cap, competence-gated threshold stepping,
+DR ramp, `schedule_dict`) via bounded schema-validated deltas, with a held-out protected
+metric + rollback tripwires. Literature-grounded (no published system does mid-run LLM
+supervision — the gap is real). Stage-1 PLR is demoted (no legged-robot evidence for
+regret/value-loss signals; LP-ACRL beat PLR); Stage-2/3/4 mechanisms are absorbed as
+the agent's Family-B/A knobs.
+
+**Phase 0: ✅ DONE (2026-07-01, same session).** 50/50 new tests, repo CPU suite 93/93
+[measured]. Built + verified:
+- `skills/agentic/sonic-knob-registry/` — action space as data (`registry.yaml`, every
+  knob source-cited against WBC 0e35637) + static decision validator (whitelist, hard
+  range, max step, per-knob cooldown, one-atomic-change, required tripwire). 22 tests.
+- `skills/agentic/sonic-run-digest/` — JSONL (train/eval/sampler, SONIC's own metric
+  names) → trend-annotated `digest.json`; failure-vector entropy + cap-saturation use
+  the sampler's exact cap semantics (`motion_lib_base.py:2570–2577`). 13 tests.
+- `experiments/curriculum-manager-phase0/` — replay harness running the full tick loop
+  (digest→decide→validate→apply→tripwire→journal) with `BandStepperPolicy` (deterministic
+  playbook core) as LLM stand-in. Acceptance behaviors ALL verified: thrash→0 actions,
+  healthy→1 bounded tighten, plateau→sampler floor (never threshold), regression→tripwire
+  auto-rollback, no-heldout-metric→no action, rogue policy→fully rejected. 15 tests.
+  See `experiments/curriculum-manager-phase0/RESULTS.md`.
+
+**Phase 1 (next, A10G):** swap the LLM in behind `propose(digest, state, registry)` and
+close the loop on a toy live run (reuse `rlvr_demo.py`'s REINFORCE loop). Also needed
+before Phase 2: the held-out eval watcher (produces `heldout_success_rate` — stock SONIC
+doesn't have it) and the `sonic-curriculum-manager` playbook SKILL.md.
+
 ## PARALLEL BUILD TRACK (launch-ready patches for a future cluster)
 Lower priority than ①②, but keeps the box productive. Same proven loop: **verify mechanism in source → write patch+config → CPU static-validate → keep submodule pinned.**
 1. **Stage 3 — progressive domain randomization.** Verify the `force_push_linear_curriculum` slot wiring (`modular_tracking_env_cfg.py`, `push_robot.yaml`); build a `push_scale_curriculum` modify_fn (0.3→1.0) + `dr_ramp.yaml`. Static-validate like Stage 2.
