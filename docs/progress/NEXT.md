@@ -90,10 +90,28 @@ the agent's Family-B/A knobs.
   on an in-band run; 0 validator rejections needed. Phase 1 also caught a real playbook
   bug (row-1 contraction precondition) — fixed. 14 tests. See its RESULTS.md.
 
-**Phase 2 (needs IsaacLab cluster):** `sonic-job-adapter` skill (launch/checkpoint/
-rollback/eval-watcher lifecycle around `accelerate launch train_agent_trl.py`), live
-digest streams from wandb/stdout, held-out watcher wired via `filter_motion_keys`,
-then the 256-env smoke: manager ON vs OFF vs hand-schedule (doc 08 §8).
+**Phase 2 infra: ✅ UNBLOCKED at smoke scale (2026-07-01, part 3)** — see
+`2026-07-01-infra.md`. SONIC training verified running on this A10G inside the
+pre-existing `isaac-lab-base` docker container: 64-env and 256-env headless PPO
+(~3.3–3.7 s/iter), checkpoint write (`save_last_frequency` override), and
+resume-from-checkpoint (**the rollback mechanism, verified**). Fixed the one missing
+dep (`vector_quantize_pytorch`). `sonic_release/last.pt` downloaded; full bones-seed
+`g1.tar.gz` (23.5 GB) downloading in background → then convert+filter per
+`installation_training.md`.
+
+**Phase 2 next steps (all now runnable here):**
+1. ⚠️ bones-seed dataset is **HF-gated** (download 403s; listing works). Request access
+   at https://huggingface.co/datasets/bones-studio/seed, then download g1.tar.gz
+   (23.5 GB) → convert → filter. Until then: 2-motion smoke set works for adapter dev.
+2. ✅ Manager-knob Hydra override **verified live**:
+   `++manager_env.commands.motion.motion_lib_cfg.adaptive_sampling.uniform_sampling_rate=0.25`
+   landed in the run's saved `config.yaml:331` and trained clean (wbc_knob_test run).
+3. `sonic-job-adapter` skill: wrap the docker-exec launch (invocation documented in
+   `2026-07-01-infra.md`), parse the console log into digest train/sampler streams,
+   manage checkpoint/rollback lifecycle.
+4. Held-out watcher wiring via `filter_motion_keys` + eval terminations config.
+5. The 256-env smoke comparison: manager ON vs OFF vs hand-schedule (doc 08 §8).
+Caveat: container WBC clone ≠ our pinned submodule — record/diff its commit first.
 
 ## PARALLEL BUILD TRACK (launch-ready patches for a future cluster)
 Lower priority than ①②, but keeps the box productive. Same proven loop: **verify mechanism in source → write patch+config → CPU static-validate → keep submodule pinned.**
