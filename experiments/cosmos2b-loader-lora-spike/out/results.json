@@ -1,0 +1,38 @@
+{
+  "A_full_layers": 16,
+  "A_kept_layers": 12,
+  "A_pass": true,
+  "B_trainable_before": 1273811968,
+  "B_trainable_after": 688128,
+  "B_adapter_layer_indices": [
+    0,
+    1,
+    2,
+    3,
+    4,
+    5,
+    6,
+    7,
+    8,
+    9,
+    10,
+    11
+  ],
+  "B_adapters_only_on_kept": true,
+  "B_num_lora_tensors": 48,
+  "B_pass": true,
+  "C_plain_keys": 134,
+  "C_c0_pass": true,
+  "C_c1_lora_unmerged_pass": false,
+  "C_c1_missing": 134,
+  "C_c1_unexpected": 182,
+  "C_c1_sample_lora_keys": [
+    "base_model.model.layers.0.self_attn.q_proj.lora_A.default.weight",
+    "base_model.model.layers.0.self_attn.q_proj.lora_B.default.weight",
+    "base_model.model.layers.0.self_attn.v_proj.lora_A.default.weight",
+    "base_model.model.layers.0.self_attn.v_proj.lora_B.default.weight"
+  ],
+  "C_c2_merged_pass": true,
+  "C_c2_keys_identical": true,
+  "C_c2_disk_roundtrip_pass": true
+}

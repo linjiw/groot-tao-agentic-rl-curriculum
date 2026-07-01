@@ -3,3 +3,9 @@
 .DS_Store
 
 validation-reports/
+
+# Experiment large binaries / regenerable heavy artifacts (keep results.json + RESULTS.md, drop weights)
+experiments/**/out/*.safetensors
+experiments/**/out/*.bin
+experiments/**/out/*.pt
+*.safetensors

@@ -1,0 +1,93 @@
+{
+  "meta": {
+    "device_fsq": "cuda",
+    "onnx_providers": [
+      "CPUExecutionProvider"
+    ],
+    "batch": 512,
+    "seed": 0,
+    "num_tokens": 2,
+    "token_dim": 32,
+    "token_total": 64,
+    "obs_dim": 994,
+    "fsq_step": 0.0625,
+    "lattice_min": -1.0,
+    "lattice_max": 0.9375,
+    "magnitude_guard": 1.25,
+    "clean_decode_meanL2": 7.442685127258301,
+    "clean_decode_std": 1.4152077436447144,
+    "decoder_path": "/home/ec2-user/.cache/huggingface/hub/models--nvidia--GEAR-SONIC/snapshots/5e22ddc69abcea2a9aafc40536b14c232d3f9d7f/model_decoder.onnx"
+  },
+  "table": [
+    {
+      "frac": 0.0,
+      "noise_amp": 0.0,
+      "token_off_dist": 0.0,
+      "snap_restores_clean_token": true,
+      "raw_off_l2": 0.0,
+      "raw_off_perdim_mse": 0.0,
+      "raw_off_maxabs": 0.0,
+      "snap_l2": 0.0,
+      "snap_perdim_mse": 0.0,
+      "snap_maxabs": 0.0,
+      "recovery_frac": NaN,
+      "raw_off_l2_rel_clean": 0.0
+    },
+    {
+      "frac": 0.1,
+      "noise_amp": 0.00625,
+      "token_off_dist": 0.028704605996608734,
+      "snap_restores_clean_token": true,
+      "raw_off_l2": 0.04935683310031891,
+      "raw_off_perdim_mse": 9.320345998276025e-05,
+      "raw_off_maxabs": 0.06928461790084839,
+      "snap_l2": 0.0,
+      "snap_perdim_mse": 0.0,
+      "snap_maxabs": 0.0,
+      "recovery_frac": 1.0,
+      "raw_off_l2_rel_clean": 0.006631589575051757
+    },
+    {
+      "frac": 0.25,
+      "noise_amp": 0.015625,
+      "token_off_dist": 0.07212872058153152,
+      "snap_restores_clean_token": true,
+      "raw_off_l2": 0.12548191845417023,
+      "raw_off_perdim_mse": 0.0005956536042504013,
+      "raw_off_maxabs": 0.17041292786598206,
+      "snap_l2": 0.0,
+      "snap_perdim_mse": 0.0,
+      "snap_maxabs": 0.0,
+      "recovery_frac": 1.0,
+      "raw_off_l2_rel_clean": 0.016859764494752263
+    },
+    {
+      "frac": 0.5,
+      "noise_amp": 0.03125,
+      "token_off_dist": 0.14377832412719727,
+      "snap_restores_clean_token": true,
+      "raw_off_l2": 0.24628116190433502,
+      "raw_off_perdim_mse": 0.002312213648110628,
+      "raw_off_maxabs": 0.3762502670288086,
+      "snap_l2": 0.0,
+      "snap_perdim_mse": 0.0,
+      "snap_maxabs": 0.0,
+      "recovery_frac": 1.0,
+      "raw_off_l2_rel_clean": 0.033090364256086545
+    },
+    {
+      "frac": 1.0,
+      "noise_amp": 0.0625,
+      "token_off_dist": 0.28851237893104553,
+      "snap_restores_clean_token": false,
+      "raw_off_l2": 0.499057412147522,
+      "raw_off_perdim_mse": 0.009489841759204865,
+      "raw_off_maxabs": 0.9044995307922363,
+      "snap_l2": 0.606725811958313,
+      "snap_perdim_mse": 0.01417242456227541,
+      "snap_maxabs": 1.1760144233703613,
+      "recovery_frac": -0.21574351405277614,
+      "raw_off_l2_rel_clean": 0.06705340930247874
+    }
+  ]
+}
