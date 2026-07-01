@@ -1,0 +1,147 @@
+{
+  "encoder_path": "/workspace/hf-cache/wbc-checkpoints/policy/release/model_encoder.onnx",
+  "encoder_io": {
+    "input": [
+      "obs_dict",
+      [
+        1,
+        1762
+      ]
+    ],
+    "output": [
+      "encoded_tokens",
+      [
+        1,
+        64
+      ]
+    ]
+  },
+  "lattice": {
+    "levels": "[32]*32",
+    "step": 0.0625,
+    "half_step": 0.03125,
+    "min": -1.0,
+    "max": 0.9375
+  },
+  "runs": {
+    "real_motion_enc0": {
+      "label": "real_motion_enc0",
+      "n_values": 76928,
+      "mean_steps": 0.0,
+      "median_steps": 0.0,
+      "p90_steps": 0.0,
+      "p95_steps": 0.0,
+      "p99_steps": 0.0,
+      "max_steps": 0.0,
+      "frac_beyond_half_step": 0.0,
+      "token_min": -0.5625,
+      "token_max": 0.5
+    },
+    "real_motion_enc1": {
+      "label": "real_motion_enc1",
+      "n_values": 76928,
+      "mean_steps": 0.0,
+      "median_steps": 0.0,
+      "p90_steps": 0.0,
+      "p95_steps": 0.0,
+      "p99_steps": 0.0,
+      "max_steps": 0.0,
+      "frac_beyond_half_step": 0.0,
+      "token_min": -0.4375,
+      "token_max": 0.375
+    },
+    "real_motion_enc2": {
+      "label": "real_motion_enc2",
+      "n_values": 76928,
+      "mean_steps": 0.0,
+      "median_steps": 0.0,
+      "p90_steps": 0.0,
+      "p95_steps": 0.0,
+      "p99_steps": 0.0,
+      "max_steps": 0.0,
+      "frac_beyond_half_step": 0.0,
+      "token_min": -0.25,
+      "token_max": 0.25
+    },
+    "real_motion_all": {
+      "label": "real_motion_all",
+      "n_values": 230784,
+      "mean_steps": 0.0,
+      "median_steps": 0.0,
+      "p90_steps": 0.0,
+      "p95_steps": 0.0,
+      "p99_steps": 0.0,
+      "max_steps": 0.0,
+      "frac_beyond_half_step": 0.0,
+      "token_min": -0.5625,
+      "token_max": 0.5,
+      "n_tokens": 3606
+    },
+    "synthetic_zeros": {
+      "label": "synthetic_zeros",
+      "n_values": 16384,
+      "mean_steps": 0.0,
+      "median_steps": 0.0,
+      "p90_steps": 0.0,
+      "p95_steps": 0.0,
+      "p99_steps": 0.0,
+      "max_steps": 0.0,
+      "frac_beyond_half_step": 0.0,
+      "token_min": -0.25,
+      "token_max": 0.25
+    },
+    "synthetic_randn_1": {
+      "label": "synthetic_randn_1",
+      "n_values": 16384,
+      "mean_steps": 0.0,
+      "median_steps": 0.0,
+      "p90_steps": 0.0,
+      "p95_steps": 0.0,
+      "p99_steps": 0.0,
+      "max_steps": 0.0,
+      "frac_beyond_half_step": 0.0,
+      "token_min": -1.0,
+      "token_max": 0.9375
+    },
+    "synthetic_randn_3": {
+      "label": "synthetic_randn_3",
+      "n_values": 16384,
+      "mean_steps": 0.0,
+      "median_steps": 0.0,
+      "p90_steps": 0.0,
+      "p95_steps": 0.0,
+      "p99_steps": 0.0,
+      "max_steps": 0.0,
+      "frac_beyond_half_step": 0.0,
+      "token_min": -1.0,
+      "token_max": 0.9375
+    },
+    "synthetic_uniform_pm5": {
+      "label": "synthetic_uniform_pm5",
+      "n_values": 16384,
+      "mean_steps": 0.0,
+      "median_steps": 0.0,
+      "p90_steps": 0.0,
+      "p95_steps": 0.0,
+      "p99_steps": 0.0,
+      "max_steps": 0.0,
+      "frac_beyond_half_step": 0.0,
+      "token_min": -1.0,
+      "token_max": 0.9375
+    }
+  },
+  "real_motion_input": {
+    "smpl_pkl": "/workspace/hf-cache/wbc-checkpoints/sample_data/smpl_filtered/walk_forward_amateur_001__A001.pkl",
+    "robot_pkl": "/workspace/hf-cache/wbc-checkpoints/sample_data/robot_filtered/210531/walk_forward_amateur_001__A001.pkl",
+    "n_frames_available": 1202,
+    "feature_dim": 273
+  },
+  "fsq_cross_check": {
+    "note": "real FSQ(levels=[32]*32).quantize applied to genuine continuous pre-quant latents lands exactly on lattice; this is the same operation baked into the ONNX encoder graph",
+    "quantized_continuous_max_dist_steps": 0.0,
+    "quantized_continuous_min": -1.0,
+    "quantized_continuous_max": 0.9375,
+    "encoder_output_on_lattice_max_dist_steps": 0.0,
+    "encoder_output_on_lattice": true
+  }
+}
