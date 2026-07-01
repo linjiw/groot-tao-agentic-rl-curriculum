@@ -73,10 +73,27 @@ the agent's Family-B/A knobs.
   auto-rollback, no-heldout-metric→no action, rogue policy→fully rejected. 15 tests.
   See `experiments/curriculum-manager-phase0/RESULTS.md`.
 
-**Phase 1 (next, A10G):** swap the LLM in behind `propose(digest, state, registry)` and
-close the loop on a toy live run (reuse `rlvr_demo.py`'s REINFORCE loop). Also needed
-before Phase 2: the held-out eval watcher (produces `heldout_success_rate` — stock SONIC
-doesn't have it) and the `sonic-curriculum-manager` playbook SKILL.md.
+**Playbook + watcher + Phase 1: ✅ ALL DONE (2026-07-01, same session).** Repo CPU suite
+120/120 [measured].
+- `skills/agentic/sonic-curriculum-manager/` — the LLM-facing playbook: hard rules, tick
+  procedure, priority-ordered decision table, digest traps, exact decision format.
+- `skills/agentic/sonic-heldout-watcher/` — protected-metric producer: salted hash split
+  (stable under library growth), integrity-checked manifest the manager never reads,
+  `metrics_eval.json` → `heldout_success_rate` records with foreign-key refusal; live
+  wiring documented against the verified `filter_motion_keys` seam
+  (`eval_agent_trl.py:316–318`). 13 tests.
+- `experiments/curriculum-manager-phase1/` — **real LLM in the closed loop**: knob-
+  responsive toy tracking run (SONIC-shaped sampler floor/cap, threshold pressure,
+  true held-out subset) + `LLMPolicy` shelling to `claude -p` with the playbook.
+  Measured: LLM held `none` ×6 on a low-band-but-rising run (correctly citing the
+  sustain + trend rules) and executed the full tighten→cooldown-hold→tighten sequence
+  on an in-band run; 0 validator rejections needed. Phase 1 also caught a real playbook
+  bug (row-1 contraction precondition) — fixed. 14 tests. See its RESULTS.md.
+
+**Phase 2 (needs IsaacLab cluster):** `sonic-job-adapter` skill (launch/checkpoint/
+rollback/eval-watcher lifecycle around `accelerate launch train_agent_trl.py`), live
+digest streams from wandb/stdout, held-out watcher wired via `filter_motion_keys`,
+then the 256-env smoke: manager ON vs OFF vs hand-schedule (doc 08 §8).
 
 ## PARALLEL BUILD TRACK (launch-ready patches for a future cluster)
 Lower priority than ①②, but keeps the box productive. Same proven loop: **verify mechanism in source → write patch+config → CPU static-validate → keep submodule pinned.**
