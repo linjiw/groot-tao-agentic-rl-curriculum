@@ -141,3 +141,64 @@ Following the `tao-curriculum-rl` scaffold conventions (frontmatter, feasibility
 ## 10. Novelty statement
 
 Per the literature sweep (mid-2026): LLMs design rewards/curricula *before* runs (Eureka, Text2Reward, CurricuLLM, AURA) and mutate hyperparameters *between* trials (PBT/TAO autoresearch/LLM-HPO); adaptive sampling and threshold annealing run *inside* runs without an LLM (SONIC, BeyondMimic, PBHC, GMT). **No published system places an LLM in supervisory control of a single ongoing RL run.** This design occupies exactly that slot, on a now-public training stack (SONIC, arXiv 2511.07820), with every required read/write surface verified in pinned source, and with the guardrail stack (protected metric, hysteresis, atomic bounded deltas, checkpoint rollback, decision journaling) assembled from the documented failure modes of 2024–26 agentic-ML systems.
+
+## 11. Design amendments from execution (2026-07-01 — Phases 0–2 built and run)
+
+All phases through the Phase-2 mechanism smoke were executed the same day this
+design landed. The architecture survived contact intact — `propose(digest,
+state, registry)` carried unchanged from the replay harness to the toy LLM
+loop to real SONIC training — but execution amended the design in five places.
+Evidence: `experiments/curriculum-manager-phase{0,1,2}/`, two adversarial
+review rounds (project-aware reviewer agent), and live runs on this box's
+A10G (`docs/infra-guide.md`).
+
+1. **Target the *binding* termination axis, not a chosen favorite.**
+   [measured] In real 64-env runs, `anchor_pos` — §6.1's illustrative axis
+   and the Stage-2 patch's lead term — terminated **~0 episodes** (its
+   `threshold_adaptive` path appears to make the strict value non-binding;
+   hypothesis, not source-verified) while `foot_pos_xyz`/`ee_body_pos` did
+   all the terminating. Loosening a non-binding term is a measured no-op
+   (v1 smoke: byte-identical to control). Amendment: the digest carries
+   per-term termination fractions (`termination_terms_mean_recent`,
+   windowed — single-iteration fractions are too noisy at small env
+   counts), and §6.1's band stepping selects the axis by binding fraction.
+   Playbook rows 1–2 updated accordingly.
+
+2. **One-change-*pending*, not just one-change-per-tick — and the harness
+   enforces it.** [measured] §3's "one atomic change per tick" plus per-knob
+   cooldowns was insufficient: a policy can hop to a *different* knob each
+   tick (the cooldown itself steers it there), orphaning the previous
+   change's tripwire and poisoning its rollback point (v1 smoke, caught by
+   review). Amendment: while any change is under tripwire watch, the policy
+   is not consulted at all (driver-level gate; registry-level enforcement
+   is queued). This subsumes §6.5's attribution discipline.
+
+3. **Knob mutation model is per-run-segment, not within-process.** The
+   verified mechanism is: stop → snapshot `last.pt` (it overwrites in
+   place) → relaunch from checkpoint with new Hydra overrides
+   (`sonic-job-adapter`). §5's Family-A "live-read at 200-step sync"
+   remains true of the mechanism but is not how the manager currently
+   drives it. Within-process mutation stays future work.
+
+4. **Outcome scoring is currently `survived`, not `met`.** §6.5 specifies
+   scoring against `expected_effect`; what's implemented is tripwire
+   survival over the watch window. The journal label was renamed to say
+   what it is. True effect-scoring (and `digest_hash`/`applied_at_iter`
+   journal fields from §3) are queued.
+
+5. **Standing adversarial review is part of the method.** Each experiment's
+   results doc goes through a project-goal-aware reviewer agent before
+   commit (two rounds on the Phase-2 smoke; both rounds caught real
+   defects the tests missed). This operationalizes the repo's honesty norm
+   for a project whose central risk is self-deception about its own value
+   (§9 caveat 1).
+
+**Phase status (2026-07-01):** Phase 0 ✅ (replay harness, 50 tests) ·
+Phase 1 ✅ (real `claude -p` policy on a knob-responsive toy loop; caught a
+playbook contraction-rule bug) · Phase 2 infra ✅ + **mechanism smoke ✅**
+(manager-ON vs OFF on real SONIC training, 6 segments/arm, pinned seed,
+first decision cleanly attributable) — but **value comparison not yet run**:
+the box has 2 motions (bones-seed HF-gated), so the protected metric is
+unexercised and len/rew gains under loosening are partly definitional.
+Phase 2's success criterion (§8) remains open until the real motion library
++ per-segment `im_eval` land. Phase 3 unchanged (cluster).

@@ -1,26 +1,69 @@
 # Next-Step Plan (start here)
 
-Last updated: 2026-07-01 (revised after the multi-agent review — see [`../design/07-review-and-revised-roadmap.md`](../design/07-review-and-revised-roadmap.md)).
+Last updated: **2026-07-01 end-of-day** — the Curriculum-Manager Agent (design doc
+[`08`](../design/08-curriculum-manager-agent.md), incl. new §11 execution amendments)
+is now the project's main track; Phases 0–2-mechanism are **done and committed**.
 
-**State:** Stage-2 curriculum is coded + statically validated (patch **verified to apply clean**, 6/6 checks reproduce). Nothing has been trained. This box is a **single A10G (23 GB), no Isaac Lab** — so the flagship (needs 64+ GPUs) cannot run here.
-
-**Key decision from the review:** *Do NOT make Stage-2 the first experiment.* It optimizes for a cluster we don't have over the two cheapest **project-killing** questions — both of which run on the A10G today. **Reordered below.**
+**State:** SONIC training **runs on this box** (A10G, inside the `isaac-lab-base`
+docker container — see [`../infra-guide.md`](../infra-guide.md)). The full manager
+stack is built, tested (repo CPU suite **144 passing**), and demonstrated closed-loop
+against real training: knob registry + validator, digest builder, playbook, held-out
+watcher core, job adapter (launch/parse/snapshot/rollback), smoke driver, and a real
+`claude -p` LLM policy (Phase 1). The ON-vs-OFF smoke ran at **mechanism level**
+(2 review rounds, verdict COMMIT) — **value comparison is NOT yet run**.
 
 ## 0. Resume checklist (5 min)
 ```bash
 cd /home/ec2-user/work/groot-tao-agentic-rl-curriculum
-git pull
-git submodule update --init --recursive    # if submodule trees aren't populated
-git log --oneline -3                        # expect 13dacc7 (or later) at top
-git submodule status                        # expect WBC 0e35637, Isaac-GR00T ab88b50
+git log --oneline -3          # expect d3e8bc1 (or later) at top
+docker ps --filter name=isaac-lab-base   # training container should be Up
+~/.local/bin/python3.10 -m pytest skills/agentic experiments/curriculum-manager-phase0 \
+  experiments/curriculum-manager-phase1 experiments/curriculum-manager-phase2 -q   # expect ~all green
 ```
-Then re-read this file + `../design/07-review-and-revised-roadmap.md`.
+Then re-read this file top-to-bottom + design doc 08 §11.
 
 ---
 
-## PRIORITY ORDER (revised)
+## NEXT STEPS (priority order, 2026-07-02+)
 
-The next two experiments run **on this A10G** and answer the questions that could invalidate whole tracks. Stage-2 is demoted to "when a cluster exists."
+### ① Unblock the motion library — bones-seed access  *[external, then ~1 day]*
+The single gating dependency for a **meaningful** manager comparison.
+1. Request access at https://huggingface.co/datasets/bones-studio/seed (account
+   owning the token in the container's `/workspace/hf-cache`). **User action.**
+2. Once granted: download `g1.tar.gz` (23.5 GB; 284 GB free) → convert
+   (`convert_soma_csv_to_motion_lib.py`) → filter (`filter_and_copy_bones_data.py`)
+   per `installation_training.md`. Sanity: re-run a 64-env smoke on the full library.
+
+### ② Wire the value measurement  *[A10G, independent of ①'s wait]*
+Make "helps vs hurts" measurable — removes the "partly definitional" caveat:
+1. **Per-segment eval passes**: run `im_eval` (eval-only, relaxed thresholds
+   `terminations/tracking/eval.yaml`) between segments via the job adapter; parse
+   `success_rate`/MPJPE into the digest's eval stream. Tracking error at FIXED
+   thresholds is the honest score under a moving training threshold.
+2. **Held-out watcher wiring** (needs ①): manifest over the real library,
+   `filter_motion_keys` on both training (curriculum keys) and eval (held-out keys)
+   sides → `heldout_success_rate` flows into the digest → playbook hard-rule 4
+   becomes exercisable.
+
+### ③ The real Phase-2 comparison  *[A10G, after ①+②]*
+Manager-ON (band) vs OFF vs hand-schedule, ≥2 seeds, longer segments (≥50 iters),
+protected metric live. Success criterion per doc 08 §8. Then swap in the **LLM
+policy arm** (Phase-1 `LLMPolicy` plugs into the same driver `propose()` interface).
+**Every results doc goes through the standing adversarial reviewer before commit**
+(agent afcb1cf25b091a832 pattern; two rounds caught real defects on the smoke).
+
+### ④ Harness debt (from review residuals — SMOKE_RESULTS "Next" 4–6)  *[CPU, fill-in work]*
+- Registry-level pending-gate + machine-enforce playbook hard-rule 4 (Family-B).
+- Observe-but-don't-act during gated ticks (sustain-history holes).
+- Score decisions against `expected_effect` (today's label is only `survived`);
+  add `digest_hash`/`applied_at_iter` to journal entries.
+- Optional: in-container logging callback dumping the per-bin
+  `adp_samp_failure_rate` vector → true sampler entropy/cap-saturation in digest
+  (console gives only aggregates).
+
+---
+
+## OLDER TRACKS (pre-manager; kept for reference)
 
 ### ① Off-lattice FSQ decode-error measurement  *[A10G, ~hours]* — DO FIRST
 Quantifies the repo's own **#1 risk** (continuous-vs-FSQ mismatch, `06:7`) and answers Open-Q #4 (`06:38`). No PPO, no 4096 envs, no IsaacLab.
