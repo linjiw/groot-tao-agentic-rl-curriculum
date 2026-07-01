@@ -1,0 +1,123 @@
+│                         [1m Learning iteration 4  [0m                        │
+│                                                                              │
+│                        Computation: 315 steps/s (Collection: 1.965s,         │
+│ Learning 1.283s)                                                             │
+│              Mean action noise std: 0.05                                     │
+│                       Mean entropy: -45.50320                                │
+│                       Mean rewards: 0.89184                                  │
+│                        Mean length: 10.87000                                 │
+│ Env/Episode_Reward/tracking_anchor_pos: 0.0096                               │
+│ Env/Episode_Reward/tracking_anchor_ori: 0.0085                               │
+│ Env/Episode_Reward/tracking_relative_body_pos: 0.0194                        │
+│ Env/Episode_Reward/tracking_relative_body_ori: 0.0086                        │
+│ Env/Episode_Reward/tracking_body_linvel: 0.0126                              │
+│ Env/Episode_Reward/tracking_body_angvel: 0.0094                              │
+│  Env/Episode_Reward/action_rate_l2: -0.0003                                  │
+│     Env/Episode_Reward/joint_limit: -0.0008                                  │
+│ Env/Episode_Reward/undesired_contacts: -0.0009                               │
+│ Env/Episode_Reward/anti_shake_ang_vel: -0.0010                               │
+│ Env/Episode_Reward/tracking_vr_5point_local: 0.0261                          │
+│        Env/Episode_Reward/feet_acc: -0.0059                                  │
+│ Env/Metrics/motion/error_anchor_pos: 0.1064                                  │
+│ Env/Metrics/motion/error_anchor_rot: 0.2200                                  │
+│ Env/Metrics/motion/error_anchor_lin_vel: 0.5523                              │
+│ Env/Metrics/motion/error_anchor_ang_vel: 1.4137                              │
+│  Env/Metrics/motion/error_body_pos: 0.0938                                   │
+│  Env/Metrics/motion/error_body_rot: 0.4055                                   │
+│ Env/Metrics/motion/error_joint_pos: 0.2037                                   │
+│ Env/Metrics/motion/error_joint_vel: 1.1710                                   │
+│ Env/Metrics/motion/error_body_lin_vel: 0.7301                                │
+│ Env/Metrics/motion/error_body_ang_vel: 2.4555                                │
+│   Env/Episode_Termination/time_out: 0.0000                                   │
+│ Env/Episode_Termination/anchor_pos: 0.0000                                   │
+│ Env/Episode_Termination/anchor_ori_full: 0.0166                              │
+│ Env/Episode_Termination/ee_body_pos: 0.4482                                  │
+│ Env/Episode_Termination/foot_pos_xyz: 0.5938                                 │
+│      Env/adp_samp/num_episodes_min: 1.0000                                   │
+│      Env/adp_samp/num_episodes_max: 3.2700                                   │
+│     Env/adp_samp/num_episodes_mean: 1.8820                                   │
+│      Env/adp_samp/num_failures_min: 1.0000                                   │
+│      Env/adp_samp/num_failures_max: 25.3125                                  │
+│     Env/adp_samp/num_failures_mean: 4.6433                                   │
+│      Env/adp_samp/failure_rate_min: 0.7692                                   │
+│      Env/adp_samp/failure_rate_max: 7.8947                                   │
+│     Env/adp_samp/failure_rate_mean: 2.2446                                   │
+│              Env/adp_samp/prob_max: 0.0403                                   │
+│              Env/adp_samp/prob_min: 0.0002                                   │
+│             Env/adp_samp/prob_mean: 0.0122                                   │
+│ Env/adp_samp/prob_max_over_uniform: 3.3042                                   │
+│    Env/adp_samp/effective_num_bins: 68.0384                                  │
+│ Env/adp_samp/num_concentrated_bins: 0.0000                                   │
+│ Env/adp_samp/episodes_max_over_mean: 1.7382                                  │
+│ ---------------------------------------------------------------------------- │
+│ ----                                                                         │
+│                     Total episodes: 256                                      │
+│                    Total timesteps: 4096                                     │
+│                     Iteration time: 3.25s                                    │
+│                         Total time: 14.82s                                   │
+│                                ETA: 59.3s                                    │
+│ Logging Directory:                                                           │
+│ /workspace/wbc-training-logs/demo/wbc_smoke-20260701_211734                  │
+╰──────────────────────────────────────────────────────────────────────────────╯╭──────────────────────────────── Training Log ────────────────────────────────╮
+│                         [1m Learning iteration 5  [0m                        │
+│                                                                              │
+│                        Computation: 317 steps/s (Collection: 1.943s,         │
+│ Learning 1.286s)                                                             │
+│              Mean action noise std: 0.05                                     │
+│                       Mean entropy: -45.46064                                │
+│                       Mean rewards: 0.88613                                  │
+│                        Mean length: 11.02000                                 │
+│ Env/Episode_Reward/tracking_anchor_pos: 0.0102                               │
+│ Env/Episode_Reward/tracking_anchor_ori: 0.0090                               │
+│ Env/Episode_Reward/tracking_relative_body_pos: 0.0209                        │
+│ Env/Episode_Reward/tracking_relative_body_ori: 0.0092                        │
+│ Env/Episode_Reward/tracking_body_linvel: 0.0142                              │
+│ Env/Episode_Reward/tracking_body_angvel: 0.0107                              │
+│  Env/Episode_Reward/action_rate_l2: -0.0003                                  │
+│     Env/Episode_Reward/joint_limit: -0.0007                                  │
+│ Env/Episode_Reward/undesired_contacts: -0.0010                               │
+│ Env/Episode_Reward/anti_shake_ang_vel: -0.0010                               │
+│ Env/Episode_Reward/tracking_vr_5point_local: 0.0280                          │
+│        Env/Episode_Reward/feet_acc: -0.0069                                  │
+│ Env/Metrics/motion/error_anchor_pos: 0.1145                                  │
+│ Env/Metrics/motion/error_anchor_rot: 0.2211                                  │
+│ Env/Metrics/motion/error_anchor_lin_vel: 0.5278                              │
+│ Env/Metrics/motion/error_anchor_ang_vel: 1.3537                              │
+│  Env/Metrics/motion/error_body_pos: 0.0968                                   │
+│  Env/Metrics/motion/error_body_rot: 0.4133                                   │
+│ Env/Metrics/motion/error_joint_pos: 0.2086                                   │
+│ Env/Metrics/motion/error_joint_vel: 1.1212                                   │
+│ Env/Metrics/motion/error_body_lin_vel: 0.7021                                │
+│ Env/Metrics/motion/error_body_ang_vel: 2.3685                                │
+│   Env/Episode_Termination/time_out: 0.0000                                   │
+│ Env/Episode_Termination/anchor_pos: 0.0000                                   │
+│ Env/Episode_Termination/anchor_ori_full: 0.0127                              │
+│ Env/Episode_Termination/ee_body_pos: 0.3828                                  │
+│ Env/Episode_Termination/foot_pos_xyz: 0.6836                                 │
+│      Env/adp_samp/num_episodes_min: 1.0000                                   │
+│      Env/adp_samp/num_episodes_max: 3.6387                                   │
+│     Env/adp_samp/num_episodes_mean: 2.1317                                   │
+│      Env/adp_samp/num_failures_min: 1.0000                                   │
+│      Env/adp_samp/num_failures_max: 29.3750                                  │
+│     Env/adp_samp/num_failures_mean: 5.7767                                   │
+│      Env/adp_samp/failure_rate_min: 0.8929                                   │
+│      Env/adp_samp/failure_rate_max: 8.9744                                   │
+│     Env/adp_samp/failure_rate_mean: 2.4730                                   │
+│              Env/adp_samp/prob_max: 0.0415                                   │
+│              Env/adp_samp/prob_min: 0.0002                                   │
+│             Env/adp_samp/prob_mean: 0.0122                                   │
+│ Env/adp_samp/prob_max_over_uniform: 3.4030                                   │
+│    Env/adp_samp/effective_num_bins: 66.7694                                  │
+│ Env/adp_samp/num_concentrated_bins: 0.0000                                   │
+│ Env/adp_samp/episodes_max_over_mean: 1.7066                                  │
+│ ---------------------------------------------------------------------------- │
+│ ----                                                                         │
+│                     Total episodes: 320                                      │
+│                    Total timesteps: 5120                                     │
+│                     Iteration time: 3.23s                                    │
+│                         Total time: 18.05s                                   │
+│                                ETA: 54.1s                                    │
+│ Logging Directory:                                                           │
+│ /workspace/wbc-training-logs/demo/wbc_smoke-20260701_211734                  │
+╰──────────────────────────────────────────────────────────────────────────────╯╭──────────────────────────────── Training Log ────────────────────────────────╮
+│                         [1m Learning iteration 6  [0m                        │

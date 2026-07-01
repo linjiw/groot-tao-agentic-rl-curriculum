@@ -106,12 +106,20 @@ dep (`vector_quantize_pytorch`). `sonic_release/last.pt` downloaded; full bones-
 2. ✅ Manager-knob Hydra override **verified live**:
    `++manager_env.commands.motion.motion_lib_cfg.adaptive_sampling.uniform_sampling_rate=0.25`
    landed in the run's saved `config.yaml:331` and trained clean (wbc_knob_test run).
-3. `sonic-job-adapter` skill: wrap the docker-exec launch (invocation documented in
-   `2026-07-01-infra.md`), parse the console log into digest train/sampler streams,
-   manage checkpoint/rollback lifecycle.
+3. ✅ **`sonic-job-adapter` skill: DONE + live-validated** (2026-07-01 part 4).
+   `skills/agentic/sonic-job-adapter/` (11 tests) + real 3-segment lifecycle on the
+   A10G: launch → parse (8 train + 8 sampler records/segment) → snapshot → knob-change
+   segment (config.yaml:332=0.15, resumed step 5) → **rollback** (restored ckpt + knobs,
+   config.yaml:332=0.1). Two live-only bugs found+fixed (pgrep self-match; missing-ckpt
+   raise). See `experiments/curriculum-manager-phase2/RESULTS.md`. Also new:
+   `docs/infra-guide.md` (how to use the container infra).
 4. Held-out watcher wiring via `filter_motion_keys` + eval terminations config.
 5. The 256-env smoke comparison: manager ON vs OFF vs hand-schedule (doc 08 §8).
-Caveat: container WBC clone ≠ our pinned submodule — record/diff its commit first.
+   All mechanical pieces now exist (digest ← parse_segment, policy, registry,
+   adapter segments); the composition is a ~100-line driver. **Meaningful**
+   comparison still gated on bones-seed access (2 motions = degenerate held-out
+   split; training-side-only comparison possible today).
+(Resolved: container WBC clone IS our pinned commit 0e35637 — verified.)
 
 ## PARALLEL BUILD TRACK (launch-ready patches for a future cluster)
 Lower priority than ①②, but keeps the box productive. Same proven loop: **verify mechanism in source → write patch+config → CPU static-validate → keep submodule pinned.**
