@@ -15,12 +15,26 @@ watcher core, job adapter (launch/parse/snapshot/rollback), smoke driver, and a 
 ## 0. Resume checklist (5 min)
 ```bash
 cd /home/ec2-user/work/groot-tao-agentic-rl-curriculum
-git log --oneline -3          # expect d3e8bc1 (or later) at top
+git log --oneline -3          # expect 727d7c1 (or later) at top
 docker ps --filter name=isaac-lab-base   # training container should be Up
 ~/.local/bin/python3.10 -m pytest skills/agentic experiments/curriculum-manager-phase0 \
   experiments/curriculum-manager-phase1 experiments/curriculum-manager-phase2 -q   # expect ~all green
 ```
 Then re-read this file top-to-bottom + design doc 08 §11.
+
+**⏳ OVERNIGHT BASELINE RUNNING (launched 2026-07-01 23:28, ETA ~10.4 h):**
+tmux session `wbc-baseline` → 10k-iter, 256-env, seed=42, stock config
+(`sonic_bones_seed`, 2-motion library), checkpoints every 50 iters.
+```bash
+tmux attach -t wbc-baseline                  # watch live (Ctrl-b d to detach)
+docker exec isaac-lab-base bash -c "grep -E 'Learning iteration' /workspace/wbc-training-logs/baseline_10k.log | tail -2"
+# artifacts: /workspace/wbc-training-logs/baseline/wbc_baseline_10k-*/ (last.pt, config.yaml)
+```
+On resume: parse the log with the job adapter (`job_adapter.py parse --log
+/workspace/wbc-training-logs/baseline_10k.log --container`) → reference
+reward/length/adp_samp curves for the ON-vs-OFF comparison (control-arm
+anchor at 10k-iter scale, same seed/config as future manager runs). Caveat:
+2-motion library — baseline for MECHANISM comparisons, not curriculum value.
 
 ---
 
