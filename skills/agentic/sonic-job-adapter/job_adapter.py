@@ -29,6 +29,7 @@ from __future__ import annotations
 
 import dataclasses
 import json
+import math
 import os
 import re
 import shlex
@@ -120,6 +121,111 @@ def build_train_command(
         parts.append(f"> {log_path} 2>&1 &")
     inner = " ".join(p for p in parts if p)
     return ["docker", "exec", CONTAINER, "bash", "-c", inner]
+
+
+def build_eval_command(
+    checkpoint: str,
+    out_dir: str,
+    num_envs: int = 64,
+    log_path: Optional[str] = None,
+) -> List[str]:
+    """The eval-only im_eval invocation (verified live 2026-07-02;
+    ~1-2 min/checkpoint at 64 envs on the A10G; deterministic — the same
+    checkpoint reproduced byte-identical metrics_eval.json). Writes
+    `<out_dir>/metrics_eval.json` (im_eval_callback.py:151-155).
+
+    Threshold-fixing model (adversarial review 2026-07-02, finding M1):
+    eval_agent_trl.py loads the CHECKPOINT-SIBLING config.yaml — which
+    contains any manager-applied training overrides — and merges the eval
+    config on top (eval_agent_trl.py:79-112). `tracking/eval.yaml` only
+    overrides anchor_pos / anchor_ori_full / ee_body_pos, so a training
+    knob it does NOT name (foot_pos_xyz) leaks through the merge into the
+    eval scoreboard. The process boundary therefore holds ONLY for knobs
+    explicitly re-pinned here. Hence every termination knob in the
+    manager's action space (KNOB_TO_HYDRA) that eval.yaml misses is pinned
+    below at its stock value; extending the action space to a new
+    termination term REQUIRES adding its pin.
+    """
+    parts = [
+        f"cd {WBC_DIR} &&",
+        "nohup" if log_path else "",
+        PYTHON_SH, "gear_sonic/eval_agent_trl.py",
+        f"+checkpoint={checkpoint}",
+        "+headless=True",
+        "++eval_callbacks=im_eval",
+        "++run_eval_loop=False",
+        f"++num_envs={num_envs}",
+        f"++eval_output_dir={out_dir}",
+        "+manager_env/terminations=tracking/eval",
+        # pin the eval.yaml-missing, training-mutable term at its stock
+        # value (0.2) so the manager's own loosening cannot reach the
+        # scoreboard through the checkpoint config merge (review M1)
+        "++manager_env.terminations.foot_pos_xyz.params.threshold=0.2",
+        "++manager_env.commands.motion.motion_lib_cfg.multi_thread=False",
+    ]
+    if log_path:
+        parts.append(f"> {log_path} 2>&1 &")
+    inner = " ".join(p for p in parts if p)
+    return ["docker", "exec", CONTAINER, "bash", "-c", inner]
+
+
+# ── metrics_eval.json parsing (pure) ─────────────────────────────────
+def _finite(v: Any) -> Optional[float]:
+    """float(v) if it is a finite number, else None (metrics_eval.json uses
+    NaN for eval/success/* aggregates whenever success_rate == 0)."""
+    if isinstance(v, (int, float)) and math.isfinite(v):
+        return float(v)
+    return None
+
+
+def parse_metrics_eval(metrics: Dict[str, Any], it: int) -> Dict[str, Any]:
+    """One metrics_eval.json → one digest eval-stream record.
+
+    Key choices (measured on the 10k-baseline eval curve, 2026-07-02):
+    - `success_rate` can sit at 0.0 for entire smoke-scale runs (2002-frame
+      motions vs ~100-step survival), so the record also carries
+      `progress_rate` — the honest smoke-scale scoreboard.
+    - `mpjpe_all_mean` = eval/all/mpjpe_g (over ALL episodes). The
+      eval/success/* variants are NaN when nothing succeeds. WARNING
+      (measured, baseline-eval-diagnosis): mpjpe_g is averaged over executed
+      frames only, so it is ANTI-correlated with survival — the succeeding
+      release model scores 120.9 vs the failing baseline's 60.7. Never use
+      it as a lower-is-better score across runs with different survival.
+    - `mpjpe_l_all_mean` = eval/all/mpjpe_l (local pose error) — much less
+      drift-sensitive (release-while-succeeding: 18 mm; baseline: 29–46 mm);
+      the recommended secondary metric after progress_rate.
+    - `per_motion` carries per-key progress/mpjpe_g/terminated aligned via
+      all_metrics_dict.motion_keys, for failed-family tracking at manager
+      cadence.
+    """
+    rec: Dict[str, Any] = {"it": it}
+    for out_key, src_key in (
+        ("success_rate", "eval/success/success_rate"),
+        ("progress_rate", "eval/success/progress_rate"),
+        ("mpjpe_all_mean", "eval/all/mpjpe_g"),
+        ("mpjpe_l_all_mean", "eval/all/mpjpe_l"),
+        ("mpjpe_pa_all_mean", "eval/all/mpjpe_pa"),
+    ):
+        v = _finite(metrics.get(src_key))
+        if v is not None:
+            rec[out_key] = v
+    if isinstance(metrics.get("failed_keys"), list):
+        rec["failed_keys"] = list(metrics["failed_keys"])
+    amd = metrics.get("eval/all_metrics_dict") or {}
+    keys = amd.get("motion_keys")
+    if isinstance(keys, list) and keys:
+        per: Dict[str, Dict[str, Any]] = {}
+        for i, k in enumerate(keys):
+            entry = {}
+            for field in ("progress", "mpjpe_g", "terminated"):
+                vals = amd.get(field)
+                if isinstance(vals, list) and i < len(vals):
+                    v = _finite(vals[i])
+                    if v is not None:
+                        entry[field] = v
+            per[str(k)] = entry
+        rec["per_motion"] = per
+    return rec
 
 
 # ── console-log parsing (pure) ───────────────────────────────────────
@@ -274,6 +380,19 @@ def is_training_running() -> bool:
     return int(out or 0) > 0
 
 
+def is_eval_running() -> bool:
+    out = _dexec("pgrep -f '[e]val_agent_trl.py' | xargs -r ps -o comm= -p 2>/dev/null | grep -c python || true").strip()
+    return int(out or 0) > 0
+
+
+def read_metrics_eval(out_dir: str) -> Dict[str, Any]:
+    """Read <out_dir>/metrics_eval.json from inside the container.
+
+    im_eval writes NaN literals (json.dump default) — parse with the same
+    permissiveness (Python's json accepts NaN by default)."""
+    return json.loads(_dexec(f"cat {shlex.quote(out_dir)}/metrics_eval.json", timeout=60))
+
+
 # ── the segment lifecycle ────────────────────────────────────────────
 @dataclasses.dataclass
 class Segment:
@@ -293,11 +412,13 @@ class JobAdapter:
     """Drives run-segments; owns checkpoint bookkeeping for rollback."""
 
     def __init__(self, project: str = "manager", num_envs: int = 256,
-                 steps_per_env: int = 16, save_last_frequency: int = 10):
+                 steps_per_env: int = 16, save_last_frequency: int = 10,
+                 seed: int = 42):
         self.project = project
         self.num_envs = num_envs
         self.steps_per_env = steps_per_env
         self.save_last_frequency = save_last_frequency
+        self.seed = seed
         self.segments: List[Segment] = []
 
     def launch_segment(self, name: str, iterations: int,
@@ -313,7 +434,7 @@ class JobAdapter:
             iterations=iterations, knobs=knobs, checkpoint=checkpoint_in,
             project_name=self.project, steps_per_env=self.steps_per_env,
             save_last_frequency=self.save_last_frequency,
-            log_path=seg.log_path,
+            log_path=seg.log_path, seed=self.seed,
         )
         subprocess.run(cmd, check=True, capture_output=True, text=True, timeout=60)
         seg.status = "running"
@@ -340,6 +461,46 @@ class JobAdapter:
 
     def parse_segment(self, seg: Segment) -> ParsedLog:
         return parse_console_log(read_container_log(seg.log_path))
+
+    def eval_segment(self, seg: Segment, it: int,
+                     num_envs: int = 64,
+                     poll_s: int = 10, timeout_s: int = 900) -> Dict[str, Any]:
+        """Run an eval-only im_eval pass on `seg`'s snapshot and return one
+        digest eval-stream record (parse_metrics_eval).
+
+        `it` is the cumulative iteration count the record should carry (the
+        driver's monotonic counter — console iteration numbers restart per
+        segment). Blocks until the eval subprocess exits; raises if the
+        segment has no snapshot, the GPU is busy, or metrics_eval.json
+        never appears (an eval that dies mid-boot leaves no output file).
+        """
+        ckpt = seg.snapshot or (seg.experiment_dir and latest_checkpoint(seg.experiment_dir))
+        if not ckpt:
+            raise RuntimeError(f"segment {seg.name} has no checkpoint to evaluate")
+        if is_training_running() or is_eval_running():
+            raise RuntimeError("GPU busy: training or eval already running in the container")
+        out_dir = f"{BASE_DIR}/{self.project}_{seg.name}_eval"
+        log_path = f"{out_dir}.log"
+        _dexec(f"rm -rf {shlex.quote(out_dir)} && mkdir -p {shlex.quote(out_dir)}")
+        cmd = build_eval_command(ckpt, out_dir, num_envs=num_envs, log_path=log_path)
+        subprocess.run(cmd, check=True, capture_output=True, text=True, timeout=60)
+        # startup grace: the nohup'd process needs a moment to appear in pgrep,
+        # else the first poll sees "not running" and exits before eval starts
+        time.sleep(min(poll_s, 10))
+        start = time.monotonic()
+        while time.monotonic() - start < timeout_s:
+            if not is_eval_running():
+                break
+            time.sleep(poll_s)
+        else:
+            raise TimeoutError(f"eval for segment {seg.name} still running after {timeout_s}s")
+        try:
+            metrics = read_metrics_eval(out_dir)
+        except RuntimeError as e:
+            raise RuntimeError(
+                f"eval for segment {seg.name} produced no metrics_eval.json "
+                f"(see {log_path}): {e}") from e
+        return parse_metrics_eval(metrics, it=it)
 
     def rollback_launch(self, failed: Segment, name: str,
                         iterations: int) -> Segment:

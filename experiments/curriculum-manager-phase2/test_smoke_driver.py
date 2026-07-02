@@ -167,10 +167,171 @@ def test_no_reward_baseline_refuses_change():
     s = driver.run(4)
     assert s["decisions_applied"] == 0
     errs = [e["validation"]["errors"] for e in driver.journal if e.get("validation")]
-    assert any("no reward baseline" in str(e) for e in errs)
+    assert any("baseline available" in str(e) for e in errs)
 
 
 def test_binding_fraction_in_rationale():
     driver, _, _ = run_driver([(10, 1.0)] * 4, len_low=20, sustain=2)
     applied = next(e for e in driver.journal if e.get("applied"))
     assert "0.56" in applied["decision"]["rationale"]  # windowed mean cited
+
+
+# ── v3: per-segment eval + eval-side tripwire ────────────────────────
+class FakeEvalAdapter(FakeAdapter):
+    """FakeAdapter + scripted eval_segment: eval_script[i] = progress_rate
+    for the i-th eval pass (None = eval failure)."""
+
+    def __init__(self, script, eval_script):
+        super().__init__(script)
+        self.eval_script = list(eval_script)
+        self.evals_run = []
+        self.j = 0
+
+    def eval_segment(self, seg, it, num_envs=64, poll_s=0, timeout_s=0):
+        pr = self.eval_script[min(self.j, len(self.eval_script) - 1)]
+        self.j += 1
+        self.evals_run.append((seg.name, it))
+        if pr is None:
+            raise RuntimeError("scripted eval failure")
+        return {"it": it, "success_rate": 0.0, "progress_rate": pr,
+                "mpjpe_all_mean": 60.0, "mpjpe_pa_all_mean": 20.0,
+                "failed_keys": ["m1", "m2"]}
+
+
+def run_eval_driver(script, eval_script, arm="manager", segments=None, **policy_kw):
+    fake = FakeEvalAdapter(script, eval_script)
+    driver = SmokeDriver(TrainSideBandPolicy(**policy_kw), adapter=fake, arm=arm)
+    summary = driver.run(segments or len(script))
+    return driver, fake, summary
+
+
+def test_eval_runs_every_segment_both_arms():
+    for arm in ("control", "manager"):
+        driver, fake, _ = run_eval_driver([(50, 1.0)] * 3, [0.04] * 3, arm=arm)
+        assert len(fake.evals_run) == 3
+        assert all(e.get("eval", {}).get("progress_rate") == 0.04
+                   for e in driver.journal)
+    # eval records carry the driver's cumulative iteration counter
+    assert [it for _, it in fake.evals_run] == [3, 6, 9]  # 3 fake iters/segment
+
+
+def test_tripwire_is_eval_side_when_eval_present():
+    driver, _, _ = run_eval_driver([(10, 1.0)] * 4, [0.04] * 4,
+                                   len_low=20, sustain=2)
+    applied = next(e for e in driver.journal if e.get("applied"))
+    assert applied["decision"]["tripwire"]["metric"] == "eval/progress_rate"
+    assert "eval-side fixed-threshold guard" in applied["decision"]["rationale"]
+
+
+def test_eval_tripwire_rolls_back_on_progress_collapse():
+    # change applied after seg2 (baseline progress 0.04); progress then
+    # collapses to 0.01 for 2 consecutive segments -> rollback
+    driver, _, s = run_eval_driver(
+        [(10, 1.0)] * 5, [0.04, 0.04, 0.01, 0.01, 0.04],
+        len_low=20, sustain=2, segments=5)
+    assert s["decisions_applied"] == 1
+    assert s["rollbacks"] == 1
+    origin = next(e for e in driver.journal if e.get("applied"))
+    assert origin["outcome"] == "failed_rolled_back"
+
+
+def test_eval_tripwire_ignores_train_reward_collapse():
+    """The v2 caveat retired: training-side reward collapse alone does NOT
+    trip an eval-side tripwire."""
+    script = [(10, 1.0), (10, 1.0), (10, 0.1), (10, 0.1), (10, 1.0)]
+    driver, _, s = run_eval_driver(script, [0.04] * 5,
+                                   len_low=20, sustain=2, segments=5)
+    assert s["rollbacks"] == 0
+    applied = next(e for e in driver.journal if e.get("applied"))
+    assert applied["outcome"] == "survived"
+
+
+def test_eval_absolute_floor_guard():
+    """At noise-level baselines a big RELATIVE drop is not a breach unless
+    the absolute drop clears EVAL_ABS_MIN_DROP."""
+    driver, _, s = run_eval_driver(
+        [(10, 1.0)] * 5, [0.003, 0.003, 0.001, 0.001, 0.003],
+        len_low=20, sustain=2, segments=5)
+    assert s["rollbacks"] == 0  # 0.003->0.001 is 66% relative but 0.002 abs = not > floor
+
+
+def test_eval_failure_does_not_kill_run_or_watch():
+    # eval fails on segment 3 (while a change is under watch): the run
+    # continues; the watch neither breaches nor clears that segment
+    driver, _, s = run_eval_driver(
+        [(10, 1.0)] * 6, [0.04, 0.04, None, 0.04, 0.04, 0.04],
+        len_low=20, sustain=2, segments=6)
+    assert any("eval_error" in e for e in driver.journal)
+    assert s["rollbacks"] == 0
+    applied = [e for e in driver.journal if e.get("applied")]
+    assert applied and applied[0]["outcome"] == "survived"
+    # the failed-eval segment is explicitly journaled as watch-unchanged
+    assert any("watch unchanged" in e.get("tripwire_note", "")
+               for e in driver.journal)
+
+
+def test_consecutive_eval_failures_do_not_score_survived():
+    """Review M3: with the watch armed, segments whose eval FAILED must not
+    count as clean — previously the stale pre-change record (== baseline)
+    was re-read and could never breach, so 2 failed evals scored the change
+    `survived` on zero post-change evidence."""
+    driver, _, s = run_eval_driver(
+        [(10, 1.0)] * 5, [0.04, 0.04, None, None, None],
+        len_low=20, sustain=2, segments=5)
+    applied = [e for e in driver.journal if e.get("applied")]
+    assert applied
+    # no post-change eval evidence ever arrived: still pending, NOT survived
+    assert applied[0]["outcome"] == "pending"
+    assert s["rollbacks"] == 0
+    notes = [e.get("tripwire_note", "") for e in driver.journal]
+    assert sum("watch unchanged" in n for n in notes) == 3
+
+
+def test_stale_eval_cannot_arm_baseline():
+    """A decision proposed in a segment whose eval failed must be refused —
+    arming against the previous segment's record would watch pre-change
+    state."""
+    driver, _, s = run_eval_driver(
+        [(10, 1.0)] * 4, [0.04, None, 0.04, 0.04],
+        len_low=20, sustain=2, segments=4)
+    # decision proposed after segment 2 (sustain met) but its eval failed
+    rejected = [e for e in driver.journal
+                if e.get("validation") and not e["validation"]["ok"]]
+    assert any("baseline available" in str(e["validation"]["errors"])
+               for e in rejected)
+
+
+def test_observe_during_gated_ticks_no_history_holes():
+    """v2 residual 5: gated segments still feed the sustain history, so the
+    SECOND change (after the first watch clears) fires as soon as the gate
+    lifts rather than needing to rebuild sustain from scratch."""
+    driver, _, s = run_eval_driver([(10, 1.0)] * 6, [0.04] * 6,
+                                   len_low=20, sustain=2, segments=6)
+    applied = [e for e in driver.journal if e.get("applied")]
+    # seg2: first change; watch clears after 2 clean evals (seg3, seg4);
+    # with an unbroken history the second change lands at seg5 (with holes
+    # it would need seg5+seg6 to rebuild sustain and land at seg6)
+    assert [e["tick"] for e in applied] == [2, 5]
+
+
+def test_applied_entries_carry_provenance():
+    driver, _, _ = run_eval_driver([(10, 1.0)] * 4, [0.04] * 4,
+                                   len_low=20, sustain=2)
+    applied = next(e for e in driver.journal if e.get("applied"))
+    assert len(applied["digest_hash"]) == 12
+    assert applied["applied_at_iter"] == 6  # applied after segment 2 (3 iters each)
+
+
+def test_summary_carries_eval_series():
+    _, _, s = run_eval_driver([(50, 1.0)] * 3, [0.03, 0.04, 0.05])
+    assert s["eval_progress_series"] == [0.03, 0.04, 0.05]
+    assert s["eval_mpjpe_series"] == [60.0, 60.0, 60.0]
+
+
+def test_no_eval_adapter_falls_back_to_train_side():
+    """FakeAdapter has no eval_segment: run_eval self-disables and the
+    tripwire is training-side (the whole v2 suite above covers behavior)."""
+    driver, _, _ = run_driver([(10, 1.0)] * 4, len_low=20, sustain=2)
+    assert driver.run_eval is False
+    applied = next(e for e in driver.journal if e.get("applied"))
+    assert applied["decision"]["tripwire"]["metric"] == "Episode/rew_mean"

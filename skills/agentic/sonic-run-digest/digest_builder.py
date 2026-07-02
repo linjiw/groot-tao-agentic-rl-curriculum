@@ -147,12 +147,18 @@ def summarize_series(values: List[float], window: int) -> Dict[str, Any]:
 
 def build_eval_section(eval_records: List[Dict[str, Any]], window: int) -> Dict[str, Any]:
     succ = [r["success_rate"] for r in eval_records if "success_rate" in r]
+    progress = [r["progress_rate"] for r in eval_records if "progress_rate" in r]
     heldout = [r["heldout_success_rate"] for r in eval_records if "heldout_success_rate" in r]
     mpjpe = [r["mpjpe_all_mean"] for r in eval_records if "mpjpe_all_mean" in r]
 
     section: Dict[str, Any] = {
         "n_evals": len(eval_records),
         "success_rate": summarize_series(succ, window),
+        # smoke-scale scoreboard: success_rate sits at 0.0 until a policy can
+        # complete a full motion (measured: 0.0 across the whole 10k baseline,
+        # 2002-frame motions vs ~100-step survival) — progress_rate moves first.
+        # Must be read jointly with mpjpe (executed-frame survivor bias).
+        "progress_rate": summarize_series(progress, window) if progress else None,
         "heldout_success_rate": summarize_series(heldout, window) if heldout else None,
         "mpjpe_all_mean": summarize_series(mpjpe, window) if mpjpe else None,
     }

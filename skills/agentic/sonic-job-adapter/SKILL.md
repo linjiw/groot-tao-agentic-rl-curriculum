@@ -54,23 +54,60 @@ seg1 (knobs A) ──last.pt──▶ snapshot_seg1.pt ──▶ seg2 (knobs B, 
 Snapshots exist because `last.pt` **overwrites in place** — without the
 copy, segment N+1's progress destroys the rollback point.
 
+## The eval pass (the manager's scoreboard)
+
+`JobAdapter.eval_segment(seg, it)` runs an eval-only `im_eval` pass on a
+segment's snapshot at the RELAXED FIXED thresholds
+(`+manager_env/terminations=tracking/eval`: 0.25/0.25/1.0,
+`threshold_adaptive=false`) and returns one digest eval-stream record.
+Verified live 2026-07-02: ~1–2 min/checkpoint at 64 envs on the A10G, and
+**deterministic** — the same checkpoint reproduces byte-identical
+`metrics_eval.json`, so per-segment arm comparisons are noise-free.
+
+Two properties this buys the manager (doc 08 §9 mitigation):
+- **Training-mutable thresholds are neutralized at eval — but NOT by a
+  free process boundary** (adversarial review 2026-07-02, finding M1):
+  `eval_agent_trl.py:79–112` loads the CHECKPOINT-SIBLING `config.yaml`
+  (which carries manager-applied overrides) and merges the eval config on
+  top; `tracking/eval.yaml` only names anchor_pos/anchor_ori_full/
+  ee_body_pos, so any other training-mutated term (foot_pos_xyz) leaks
+  through the merge. `build_eval_command` therefore **explicitly re-pins
+  foot_pos_xyz at stock 0.2**, and a structural test
+  (`test_eval_command_pins_every_actionable_term_eval_yaml_misses`) fails
+  if a termination knob is ever added to the action space without its
+  eval pin. In the first v3 comparison run this leak was live — the
+  manager's s3–s6 evals ran with its own foot_pos_xyz=0.25 — and the
+  affected segments were re-evaluated with the pin (see
+  `experiments/curriculum-manager-phase2/COMPARISON_V3_RESULTS.md`).
+- `parse_metrics_eval` maps the honest smoke-scale metrics:
+  `success_rate` (0.0 until a policy completes a full motion — measured
+  0.0 across the whole 10k baseline), `progress_rate` (moves first),
+  `mpjpe_all_mean` (= eval/all/mpjpe_g; **executed-frame survivor bias** —
+  read jointly with progress_rate, never alone), per-motion
+  progress/mpjpe/terminated, `failed_keys`. NaN aggregates (success-side
+  stats when nothing succeeds) are dropped, not propagated.
+
 ## Files
 
 - `job_adapter.py` — `KNOB_TO_HYDRA` (registry knob → verified Hydra path;
   raises on unmapped knobs — the adapter never invents config paths),
-  `build_train_command`, `parse_console_log`, `JobAdapter`
-  (launch_segment / wait / parse_segment / rollback_launch), CLI.
-- `test_job_adapter.py` — 11 tests, including parsing a **real log
-  excerpt** from a verified run and an end-to-end check that parsed
-  records flow into `sonic-run-digest`.
+  `build_train_command`, `build_eval_command`, `parse_console_log`,
+  `parse_metrics_eval`, `JobAdapter` (launch_segment / wait /
+  parse_segment / eval_segment / rollback_launch), CLI.
+- `test_job_adapter.py` — 17 tests, including parsing a **real log
+  excerpt** and a **real metrics_eval.json** from verified runs, plus
+  end-to-end checks that parsed records flow into `sonic-run-digest`.
 - `testdata/train_log_excerpt.txt` — iterations 4–5 of the real
   `wbc_smoke` run (the parser's ground truth).
+- `testdata/metrics_eval_real.json` — the real eval output from the 10k
+  baseline checkpoint (2026-07-02; the eval parser's ground truth,
+  including its NaN literals).
 
 ## Quick start
 
 ```bash
 cd skills/agentic/sonic-job-adapter
-python3 -m pytest test_job_adapter.py -q      # 11 passed
+python3 -m pytest test_job_adapter.py -q      # 17 passed
 
 # dry-run: print the exact launch command for a knob override
 python3 job_adapter.py command --name seg1 --iterations 20 --num-envs 64 \

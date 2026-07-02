@@ -1,0 +1,188 @@
+{
+  "segments": {
+    "control": 6,
+    "manager": 6
+  },
+  "eval_progress_rate_PRIMARY": {
+    "control": [
+      0.0032,
+      0.0035,
+      0.0035,
+      0.0035,
+      0.0037,
+      0.0037
+    ],
+    "manager": [
+      0.0032,
+      0.0035,
+      0.0035,
+      0.0037,
+      0.0037,
+      0.004
+    ]
+  },
+  "eval_mpjpe_l_SECONDARY": {
+    "control": [
+      27.4106,
+      30.2438,
+      29.3855,
+      27.8705,
+      28.3531,
+      28.0833
+    ],
+    "manager": [
+      27.4106,
+      30.2438,
+      29.0932,
+      27.3549,
+      25.6828,
+      28.3063
+    ]
+  },
+  "eval_mpjpe_g_SURVIVOR_BIASED": {
+    "control": [
+      34.5948,
+      38.9432,
+      38.6009,
+      37.5477,
+      39.2324,
+      38.8848
+    ],
+    "manager": [
+      34.5948,
+      38.9432,
+      37.4607,
+      35.5546,
+      34.1914,
+      37.1284
+    ]
+  },
+  "eval_sources": {
+    "control": [
+      "_eval",
+      "_eval",
+      "_eval",
+      "_eval",
+      "_eval",
+      "_eval"
+    ],
+    "manager": [
+      "_eval",
+      "_eval",
+      "_eval_pinned",
+      "_eval_pinned",
+      "_eval_pinned",
+      "_eval_pinned"
+    ]
+  },
+  "eval_per_motion_progress": {
+    "control": [
+      {
+        "walk_forward_amateur_001__A001_M": 0.003,
+        "walk_forward_amateur_001__A001": 0.0035
+      },
+      {
+        "walk_forward_amateur_001__A001_M": 0.0035,
+        "walk_forward_amateur_001__A001": 0.0035
+      },
+      {
+        "walk_forward_amateur_001__A001_M": 0.0035,
+        "walk_forward_amateur_001__A001": 0.0035
+      },
+      {
+        "walk_forward_amateur_001__A001_M": 0.0035,
+        "walk_forward_amateur_001__A001": 0.0035
+      },
+      {
+        "walk_forward_amateur_001__A001_M": 0.0035,
+        "walk_forward_amateur_001__A001": 0.004
+      },
+      {
+        "walk_forward_amateur_001__A001_M": 0.0035,
+        "walk_forward_amateur_001__A001": 0.004
+      }
+    ],
+    "manager": [
+      {
+        "walk_forward_amateur_001__A001_M": 0.003,
+        "walk_forward_amateur_001__A001": 0.0035
+      },
+      {
+        "walk_forward_amateur_001__A001_M": 0.0035,
+        "walk_forward_amateur_001__A001": 0.0035
+      },
+      {
+        "walk_forward_amateur_001__A001_M": 0.0035,
+        "walk_forward_amateur_001__A001": 0.0035
+      },
+      {
+        "walk_forward_amateur_001__A001_M": 0.0035,
+        "walk_forward_amateur_001__A001": 0.004
+      },
+      {
+        "walk_forward_amateur_001__A001_M": 0.0035,
+        "walk_forward_amateur_001__A001": 0.004
+      },
+      {
+        "walk_forward_amateur_001__A001_M": 0.004,
+        "walk_forward_amateur_001__A001": 0.004
+      }
+    ]
+  },
+  "train_len_mean_CONTEXT": {
+    "control": [
+      18.02,
+      15.37,
+      20.47,
+      16.41,
+      16.56,
+      20.72
+    ],
+    "manager": [
+      18.02,
+      15.37,
+      20.43,
+      21.12,
+      22.14,
+      20.23
+    ]
+  },
+  "train_rew_mean_CONTEXT": {
+    "control": [
+      1.5633,
+      1.2412,
+      1.7185,
+      1.445,
+      1.4418,
+      1.8394
+    ],
+    "manager": [
+      1.5633,
+      1.2412,
+      1.6756,
+      1.7658,
+      1.8903,
+      1.7161
+    ]
+  },
+  "manager_decisions": [
+    {
+      "tick": 2,
+      "knob": "termination_threshold.foot_pos_xyz",
+      "value": 0.25,
+      "outcome": "survived",
+      "applied_at_iter": 100,
+      "digest_hash": "05f41bb302ad"
+    }
+  ],
+  "rollbacks": {
+    "control": 0,
+    "manager": 0
+  },
+  "eval_errors": {
+    "control": [],
+    "manager": []
+  },
+  "prefix_identical_before_first_change": true,
+  "first_change_tick": 2
+}

@@ -79,6 +79,35 @@ Always confirm in the run's saved `config.yaml`. **Mutation model:** knobs
 change **per run-segment** — stop, relaunch from `last.pt` with new
 overrides. (Within-process mutation is future work.)
 
+## Eval-only pass (the manager's scoreboard — verified 2026-07-02)
+
+```bash
+docker exec isaac-lab-base bash -c "cd /workspace/GR00T-WholeBodyControl && \
+  /isaac-sim/python.sh gear_sonic/eval_agent_trl.py \
+    +checkpoint=<ckpt.pt> +headless=True \
+    ++eval_callbacks=im_eval ++run_eval_loop=False \
+    ++num_envs=64 ++eval_output_dir=<out_dir> \
+    +manager_env/terminations=tracking/eval \
+    ++manager_env.commands.motion.motion_lib_cfg.multi_thread=False \
+    > <log> 2>&1"
+```
+
+- ~1–2 min/checkpoint at 64 envs (incl. Isaac boot); writes
+  `<out_dir>/metrics_eval.json`. **Deterministic**: same checkpoint →
+  byte-identical metrics.
+- Reading the metrics (measured, `experiments/baseline-eval-diagnosis/`):
+  `success_rate` = full-clip completion (2002 frames, all-or-nothing; 0.0
+  for any smoke-scale policy — the release checkpoint scores 1.0);
+  **`progress_rate` is the primary score**; `mpjpe_l` secondary;
+  `mpjpe_g` is survivor-biased (anti-correlated with survival) — never
+  read it as lower-is-better across runs with different survival.
+- progress_rate is quantized in units of 1/(2·2002) with 2 motions —
+  byte-identical values across nearby checkpoints are quantization, not
+  a caching bug.
+- The render path (`render_results=True`) **segfaults on this box**
+  (Isaac Sim 5.1 RTX + driver 595.71.05, crash in app startup before any
+  eval code) — see `experiments/baseline-eval-diagnosis/RENDER_TODO.md`.
+
 ## Reading the console log (digest input)
 
 Each iteration prints a boxed block:

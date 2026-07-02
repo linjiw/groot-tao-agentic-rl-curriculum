@@ -1,79 +1,89 @@
 # Next-Step Plan (start here)
 
-Last updated: **2026-07-01 end-of-day** — the Curriculum-Manager Agent (design doc
-[`08`](../design/08-curriculum-manager-agent.md), incl. new §11 execution amendments)
-is now the project's main track; Phases 0–2-mechanism are **done and committed**.
+Last updated: **2026-07-02 end-of-day** — the Curriculum-Manager Agent (design doc
+[`08`](../design/08-curriculum-manager-agent.md), §11 amendments 1–8) is the main
+track. Phases 0–2-mechanism committed earlier; **the eval-scored ON-vs-OFF
+comparison has now RUN** (see below).
 
-**State:** SONIC training **runs on this box** (A10G, inside the `isaac-lab-base`
-docker container — see [`../infra-guide.md`](../infra-guide.md)). The full manager
-stack is built, tested (repo CPU suite **144 passing**), and demonstrated closed-loop
-against real training: knob registry + validator, digest builder, playbook, held-out
-watcher core, job adapter (launch/parse/snapshot/rollback), smoke driver, and a real
-`claude -p` LLM policy (Phase 1). The ON-vs-OFF smoke ran at **mechanism level**
-(2 review rounds, verdict COMMIT) — **value comparison is NOT yet run**.
+**State:** SONIC training + **eval-only im_eval passes** both run on this box
+(A10G, `isaac-lab-base` container — see [`../infra-guide.md`](../infra-guide.md)).
+Repo CPU suite **160 passing**. New today (2026-07-02):
+- **Overnight 10k baseline COMPLETE** (10,000 iters / 256 envs / seed 42; ~9.7 h;
+  checkpoints at 2k/4k/6k/8k/10k + eval curve over all five). Reference curves in
+  `/workspace/wbc-training-logs/{baseline,eval_baseline}/`.
+- **Baseline diagnosis** (`experiments/baseline-eval-diagnosis/RESULTS.md`):
+  success_rate = all-or-nothing full-clip completion → 0.0 at smoke scale is
+  expected; the **release checkpoint scores 1.0/1.0 on our 2 motions** (pipeline
+  fine, we're ~100× short on data); **mpjpe_g is survivor-biased** (release 120.9
+  vs failing baseline 60.7) → primary metric = progress_rate, secondary = mpjpe_l.
+  **Videos rendered** (MuJoCo kinematic-replay fallback — the Isaac RTX render
+  path segfaults on this box): `experiments/baseline-eval-diagnosis/videos/`.
+- **Job adapter eval op** (`eval_segment`/`build_eval_command`/`parse_metrics_eval`,
+  ground-truthed on a real metrics_eval.json; 17 adapter tests) + digest
+  progress_rate summarization.
+- **Driver v3** (`smoke_driver.py`): per-segment eval both arms, **eval-side
+  tripwire** (`eval/progress_rate`, drop 30% + abs floor 0.002), observe-during-
+  gated-ticks, `digest_hash`/`applied_at_iter` journal fields, `--base-knobs`
+  registry-belief seeding. 23 driver tests.
+- **ON-vs-OFF v3 RUN, eval-scored** (`COMPARISON_V3_RESULTS.md` +
+  `comparison_v3_scored.json`): 6×50-iter×256-env per arm from the 2k baseline
+  ckpt, seed 42. Prefix identity held; one clean decision (foot_pos_xyz 0.20→0.25,
+  true one-notch, survived its eval-side watch); manager final progress 0.0040 vs
+  control 0.0037 (ONE quantization step — mechanism demonstrated, **value still
+  not claimed**).
+- **Bug caught: registry-default vs actual-config drift** — v2's "one-notch"
+  ee_body_pos change was actually 0.15→0.35. v3 seeds beliefs from real values;
+  structural fix queued (see ④).
 
 ## 0. Resume checklist (5 min)
 ```bash
 cd /home/ec2-user/work/groot-tao-agentic-rl-curriculum
-git log --oneline -3          # expect 727d7c1 (or later) at top
-docker ps --filter name=isaac-lab-base   # training container should be Up
-~/.local/bin/python3.10 -m pytest skills/agentic experiments/curriculum-manager-phase0 \
-  experiments/curriculum-manager-phase1 experiments/curriculum-manager-phase2 -q   # expect ~all green
+git log --oneline -3
+docker ps --filter name=isaac-lab-base   # container should be Up
+~/.local/bin/python3.10 -m pytest skills experiments -q   # expect 160 passed
 ```
-Then re-read this file top-to-bottom + design doc 08 §11.
-
-**⏳ OVERNIGHT BASELINE RUNNING (launched 2026-07-01 23:28, ETA ~10.4 h):**
-tmux session `wbc-baseline` → 10k-iter, 256-env, seed=42, stock config
-(`sonic_bones_seed`, 2-motion library), checkpoints every 50 iters.
-```bash
-tmux attach -t wbc-baseline                  # watch live (Ctrl-b d to detach)
-docker exec isaac-lab-base bash -c "grep -E 'Learning iteration' /workspace/wbc-training-logs/baseline_10k.log | tail -2"
-# artifacts: /workspace/wbc-training-logs/baseline/wbc_baseline_10k-*/ (last.pt, config.yaml)
-```
-On resume: parse the log with the job adapter (`job_adapter.py parse --log
-/workspace/wbc-training-logs/baseline_10k.log --container`) → reference
-reward/length/adp_samp curves for the ON-vs-OFF comparison (control-arm
-anchor at 10k-iter scale, same seed/config as future manager runs). Caveat:
-2-motion library — baseline for MECHANISM comparisons, not curriculum value.
+Then re-read this file + design doc 08 §11 (amendments 6–8 are new).
 
 ---
 
-## NEXT STEPS (priority order, 2026-07-02+)
+## NEXT STEPS (priority order, 2026-07-03+)
 
 ### ① Unblock the motion library — bones-seed access  *[external, then ~1 day]*
-The single gating dependency for a **meaningful** manager comparison.
-1. Request access at https://huggingface.co/datasets/bones-studio/seed (account
-   owning the token in the container's `/workspace/hf-cache`). **User action.**
-2. Once granted: download `g1.tar.gz` (23.5 GB; 284 GB free) → convert
-   (`convert_soma_csv_to_motion_lib.py`) → filter (`filter_and_copy_bones_data.py`)
-   per `installation_training.md`. Sanity: re-run a 64-env smoke on the full library.
+Still the single gating dependency for a **meaningful** manager comparison
+(2026-07-02 recheck: still 401-gated).
+1. Request/confirm access at https://huggingface.co/datasets/bones-studio/seed
+   (account owning the token in `/workspace/hf-cache`). **User action.**
+2. Once granted: download `g1.tar.gz` (23.5 GB) → convert → filter per
+   `installation_training.md`. Sanity: 64-env smoke on the full library.
+3. Then: **held-out watcher wiring** — manifest over the real library,
+   `filter_motion_keys` on training (curriculum keys) and eval (held-out keys)
+   sides → `heldout_success_rate`/heldout progress into the digest → playbook
+   hard-rule 4 exercisable. This upgrades the v3 eval-side tripwire (fixed
+   thresholds, but train-keys) to the doc-08 protected metric proper.
 
-### ② Wire the value measurement  *[A10G, independent of ①'s wait]*
-Make "helps vs hurts" measurable — removes the "partly definitional" caveat:
-1. **Per-segment eval passes**: run `im_eval` (eval-only, relaxed thresholds
-   `terminations/tracking/eval.yaml`) between segments via the job adapter; parse
-   `success_rate`/MPJPE into the digest's eval stream. Tracking error at FIXED
-   thresholds is the honest score under a moving training threshold.
-2. **Held-out watcher wiring** (needs ①): manifest over the real library,
-   `filter_motion_keys` on both training (curriculum keys) and eval (held-out keys)
-   sides → `heldout_success_rate` flows into the digest → playbook hard-rule 4
-   becomes exercisable.
+### ② Multi-seed comparison + LLM policy arm  *[A10G, runnable now]*
+- ≥2 seeds × longer horizon (v3 showed 50-iter segments are workable; consider
+  10–12 segments) — control vs band-manager, eval-scored per v3 protocol
+  (`run_comparison_v3.sh` + `score_comparison_v3.py`).
+- Swap in the **LLM policy arm**: Phase-1 `LLMPolicy` plugs into the same
+  `propose()` interface — now with the eval stream in its digest (playbook may
+  need a progress_rate/mpjpe_l interpretation row; mind §11 amendment 7).
+- Success criterion per doc 08 §8; adversarial review before commit (standing).
 
-### ③ The real Phase-2 comparison  *[A10G, after ①+②]*
-Manager-ON (band) vs OFF vs hand-schedule, ≥2 seeds, longer segments (≥50 iters),
-protected metric live. Success criterion per doc 08 §8. Then swap in the **LLM
-policy arm** (Phase-1 `LLMPolicy` plugs into the same driver `propose()` interface).
-**Every results doc goes through the standing adversarial reviewer before commit**
-(agent afcb1cf25b091a832 pattern; two rounds caught real defects on the smoke).
+### ③ Registry verifies believed knob values against the resolved config  *[CPU]*
+Close §11 amendment 8 structurally: registry (or adapter) reads the run's saved
+`config.yaml` and refuses/flags when the believed current value diverges from
+the resolved one. Kills the whole class of default-drift bugs.
 
-### ④ Harness debt (from review residuals — SMOKE_RESULTS "Next" 4–6)  *[CPU, fill-in work]*
-- Registry-level pending-gate + machine-enforce playbook hard-rule 4 (Family-B).
-- Observe-but-don't-act during gated ticks (sustain-history holes).
-- Score decisions against `expected_effect` (today's label is only `survived`);
-  add `digest_hash`/`applied_at_iter` to journal entries.
-- Optional: in-container logging callback dumping the per-bin
-  `adp_samp_failure_rate` vector → true sampler entropy/cap-saturation in digest
-  (console gives only aggregates).
+### ④ Remaining harness debt  *[CPU, fill-in]*
+- Registry-level pending-gate (currently driver-level) + machine-enforce
+  playbook hard-rule 4 for Family-B.
+- Score decisions against `expected_effect` (outcome is still only `survived`).
+- Optional: per-bin `adp_samp_failure_rate` logging callback (console gives
+  only aggregates).
+- Optional: per-term eval termination counter (diagnosis open question: which
+  eval term actually kills episodes — ee_body_pos vs anchor_ori_full; cheap
+  threshold-ablation recipe in `baseline-eval-diagnosis/RENDER_TODO.md` bonus).
 
 ---
 

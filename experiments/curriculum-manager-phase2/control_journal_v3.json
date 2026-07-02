@@ -1,0 +1,104 @@
+[
+  {
+    "tick": 1,
+    "segment": "control_s1",
+    "knobs_in": {},
+    "rew_mean_last": 1.56331,
+    "len_mean_last": 18.02,
+    "eval": {
+      "success_rate": 0.0,
+      "progress_rate": 0.003246753243729472,
+      "mpjpe_all_mean": 34.59480830601284,
+      "mpjpe_pa_all_mean": 23.419168744768413
+    },
+    "decision": {
+      "action": "none",
+      "reason": "control arm"
+    }
+  },
+  {
+    "tick": 2,
+    "segment": "control_s2",
+    "knobs_in": {},
+    "rew_mean_last": 1.24118,
+    "len_mean_last": 15.37,
+    "eval": {
+      "success_rate": 0.0,
+      "progress_rate": 0.003496503457427025,
+      "mpjpe_all_mean": 38.94317844935826,
+      "mpjpe_pa_all_mean": 26.499021257672993
+    },
+    "decision": {
+      "action": "none",
+      "reason": "control arm"
+    }
+  },
+  {
+    "tick": 3,
+    "segment": "control_s3",
+    "knobs_in": {},
+    "rew_mean_last": 1.7185,
+    "len_mean_last": 20.47,
+    "eval": {
+      "success_rate": 0.0,
+      "progress_rate": 0.003496503457427025,
+      "mpjpe_all_mean": 38.60086277553013,
+      "mpjpe_pa_all_mean": 25.708528791155135
+    },
+    "decision": {
+      "action": "none",
+      "reason": "control arm"
+    }
+  },
+  {
+    "tick": 4,
+    "segment": "control_s4",
+    "knobs_in": {},
+    "rew_mean_last": 1.44504,
+    "len_mean_last": 16.41,
+    "eval": {
+      "success_rate": 0.0,
+      "progress_rate": 0.003496503457427025,
+      "mpjpe_all_mean": 37.54773167201451,
+      "mpjpe_pa_all_mean": 24.814607892717635
+    },
+    "decision": {
+      "action": "none",
+      "reason": "control arm"
+    }
+  },
+  {
+    "tick": 5,
+    "segment": "control_s5",
+    "knobs_in": {},
+    "rew_mean_last": 1.44178,
+    "len_mean_last": 16.56,
+    "eval": {
+      "success_rate": 0.0,
+      "progress_rate": 0.0037462536711245775,
+      "mpjpe_all_mean": 39.232363746279766,
+      "mpjpe_pa_all_mean": 25.333566817026288
+    },
+    "decision": {
+      "action": "none",
+      "reason": "control arm"
+    }
+  },
+  {
+    "tick": 6,
+    "segment": "control_s6",
+    "knobs_in": {},
+    "rew_mean_last": 1.8394,
+    "len_mean_last": 20.72,
+    "eval": {
+      "success_rate": 0.0,
+      "progress_rate": 0.0037462536711245775,
+      "mpjpe_all_mean": 38.88477337549604,
+      "mpjpe_pa_all_mean": 24.646270267547123
+    },
+    "decision": {
+      "action": "none",
+      "reason": "control arm"
+    }
+  }
+]

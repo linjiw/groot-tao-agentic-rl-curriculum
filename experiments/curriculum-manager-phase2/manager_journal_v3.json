@@ -1,0 +1,174 @@
+[
+  {
+    "tick": 1,
+    "segment": "manager_s1",
+    "knobs_in": {
+      "termination_threshold.anchor_pos": 0.15,
+      "termination_threshold.ee_body_pos": 0.15,
+      "termination_threshold.foot_pos_xyz": 0.2
+    },
+    "rew_mean_last": 1.56331,
+    "len_mean_last": 18.02,
+    "eval": {
+      "success_rate": 0.0,
+      "progress_rate": 0.003246753243729472,
+      "mpjpe_all_mean": 34.59480830601284,
+      "mpjpe_l_all_mean": 27.410598754882812,
+      "mpjpe_pa_all_mean": 23.419168744768413,
+      "per_motion_progress": {
+        "walk_forward_amateur_001__A001_M": 0.0029970030300319195,
+        "walk_forward_amateur_001__A001": 0.003496503457427025
+      }
+    },
+    "decision": {
+      "action": "none",
+      "reason": "len [18.0] inside [20.0, 200.0] band or sustain unmet"
+    }
+  },
+  {
+    "tick": 2,
+    "segment": "manager_s2",
+    "knobs_in": {
+      "termination_threshold.anchor_pos": 0.15,
+      "termination_threshold.ee_body_pos": 0.15,
+      "termination_threshold.foot_pos_xyz": 0.2
+    },
+    "rew_mean_last": 1.24118,
+    "len_mean_last": 15.37,
+    "eval": {
+      "success_rate": 0.0,
+      "progress_rate": 0.003496503457427025,
+      "mpjpe_all_mean": 38.94317844935826,
+      "mpjpe_l_all_mean": 30.24384961809431,
+      "mpjpe_pa_all_mean": 26.499021257672993,
+      "per_motion_progress": {
+        "walk_forward_amateur_001__A001_M": 0.003496503457427025,
+        "walk_forward_amateur_001__A001": 0.003496503457427025
+      }
+    },
+    "decision": {
+      "action": "set",
+      "knob": "termination_threshold.foot_pos_xyz",
+      "value": 0.25,
+      "rationale": "mean episode length [18.0, 15.4] < 20.0 for 2 segments; termination_threshold.foot_pos_xyz is the binding termination axis (windowed mean 0.68 of episodes; training-side signal; eval-side fixed-threshold guard; no held-out here)",
+      "expected_effect": "episodes lengthen; eval progress_rate does not fall",
+      "tripwire": {
+        "metric": "eval/progress_rate",
+        "drop_pct": 30,
+        "evals": 2
+      }
+    },
+    "validation": {
+      "ok": true,
+      "errors": []
+    },
+    "applied": true,
+    "outcome": "survived",
+    "digest_hash": "05f41bb302ad",
+    "applied_at_iter": 100
+  },
+  {
+    "tick": 3,
+    "segment": "manager_s3",
+    "knobs_in": {
+      "termination_threshold.anchor_pos": 0.15,
+      "termination_threshold.ee_body_pos": 0.15,
+      "termination_threshold.foot_pos_xyz": 0.25
+    },
+    "rew_mean_last": 1.67558,
+    "len_mean_last": 20.43,
+    "eval": {
+      "success_rate": 0.0,
+      "progress_rate": 0.003496503457427025,
+      "mpjpe_all_mean": 37.46072605678013,
+      "mpjpe_l_all_mean": 29.09320831298828,
+      "mpjpe_pa_all_mean": 25.517825535365514,
+      "per_motion_progress": {
+        "walk_forward_amateur_001__A001_M": 0.003496503457427025,
+        "walk_forward_amateur_001__A001": 0.003496503457427025
+      }
+    },
+    "decision": {
+      "action": "none",
+      "reason": "pending decision on termination_threshold.foot_pos_xyz still under tripwire watch (one change at a time)"
+    }
+  },
+  {
+    "tick": 4,
+    "segment": "manager_s4",
+    "knobs_in": {
+      "termination_threshold.anchor_pos": 0.15,
+      "termination_threshold.ee_body_pos": 0.15,
+      "termination_threshold.foot_pos_xyz": 0.25
+    },
+    "rew_mean_last": 1.76578,
+    "len_mean_last": 21.12,
+    "eval": {
+      "success_rate": 0.0,
+      "progress_rate": 0.0037462536711245775,
+      "mpjpe_all_mean": 35.55456446087549,
+      "mpjpe_l_all_mean": 27.354898119729665,
+      "mpjpe_pa_all_mean": 24.55154758029514,
+      "per_motion_progress": {
+        "walk_forward_amateur_001__A001_M": 0.003496503457427025,
+        "walk_forward_amateur_001__A001": 0.00399600388482213
+      }
+    },
+    "decision": {
+      "action": "none",
+      "reason": "len [20.4, 21.1] inside [20.0, 200.0] band or sustain unmet"
+    }
+  },
+  {
+    "tick": 5,
+    "segment": "manager_s5",
+    "knobs_in": {
+      "termination_threshold.anchor_pos": 0.15,
+      "termination_threshold.ee_body_pos": 0.15,
+      "termination_threshold.foot_pos_xyz": 0.25
+    },
+    "rew_mean_last": 1.89033,
+    "len_mean_last": 22.14,
+    "eval": {
+      "success_rate": 0.0,
+      "progress_rate": 0.0037462536711245775,
+      "mpjpe_all_mean": 34.19139074900794,
+      "mpjpe_l_all_mean": 25.682787698412696,
+      "mpjpe_pa_all_mean": 22.95260281032986,
+      "per_motion_progress": {
+        "walk_forward_amateur_001__A001_M": 0.003496503457427025,
+        "walk_forward_amateur_001__A001": 0.00399600388482213
+      }
+    },
+    "decision": {
+      "action": "none",
+      "reason": "len [21.1, 22.1] inside [20.0, 200.0] band or sustain unmet"
+    }
+  },
+  {
+    "tick": 6,
+    "segment": "manager_s6",
+    "knobs_in": {
+      "termination_threshold.anchor_pos": 0.15,
+      "termination_threshold.ee_body_pos": 0.15,
+      "termination_threshold.foot_pos_xyz": 0.25
+    },
+    "rew_mean_last": 1.71606,
+    "len_mean_last": 20.23,
+    "eval": {
+      "success_rate": 0.0,
+      "progress_rate": 0.00399600388482213,
+      "mpjpe_all_mean": 37.12836371527778,
+      "mpjpe_l_all_mean": 28.30633932446677,
+      "mpjpe_pa_all_mean": 25.30326431516617,
+      "per_motion_progress": {
+        "walk_forward_amateur_001__A001_M": 0.00399600388482213,
+        "walk_forward_amateur_001__A001": 0.00399600388482213
+      }
+    },
+    "decision": {
+      "action": "none",
+      "reason": "len [22.1, 20.2] inside [20.0, 200.0] band or sustain unmet"
+    }
+  }
+]

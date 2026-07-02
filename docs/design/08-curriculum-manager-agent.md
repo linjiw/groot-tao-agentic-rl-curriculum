@@ -202,3 +202,42 @@ the box has 2 motions (bones-seed HF-gated), so the protected metric is
 unexercised and len/rew gains under loosening are partly definitional.
 Phase 2's success criterion (§8) remains open until the real motion library
 + per-segment `im_eval` land. Phase 3 unchanged (cluster).
+
+### §11 addendum (2026-07-02) — eval-scored loop; three more amendments
+
+Per-segment `im_eval` landed (`JobAdapter.eval_segment`) and the
+ON-vs-OFF comparison re-ran eval-scored (6×50-iter segments × 256 envs,
+both arms from the same 2k-iter baseline checkpoint; see
+`experiments/curriculum-manager-phase2/COMPARISON_V3_RESULTS.md`).
+Amendments 6–8:
+
+6. **The tripwire guard metric is eval-side — and the boundary must be
+   PINNED, not assumed.** §3 step 5's tripwire now watches
+   `eval/progress_rate` at FIXED relaxed thresholds. But [measured,
+   adversarial review M1] the eval process loads the checkpoint-sibling
+   config.yaml — which carries the manager's applied overrides — and
+   merges the eval config on top; any termination term eval.yaml does not
+   name (foot_pos_xyz) leaks the manager's own action into the
+   scoreboard. In the first v3 run this leak was live. The fix is
+   explicit: `build_eval_command` re-pins every actionable term eval.yaml
+   misses at its stock value, with a structural test that fails when the
+   action space grows without a matching pin. Generalized lesson for §9:
+   "outside the action space by process boundary" is a claim about a
+   CONFIG MERGE, and must be verified per-knob, not per-process. (The
+   held-out PROTECTED metric of §4 remains distinct and still gated on
+   the real library: eval keys are training keys here.)
+7. **Scoreboard semantics matter more than metric count.** [measured]
+   `success_rate` is all-or-nothing full-clip completion (0.0 for every
+   smoke-scale policy; the release checkpoint scores 1.0), and `mpjpe_g`
+   is executed-frame averaged, hence ANTI-correlated with survival
+   (release 120.9 vs failing baseline 60.7). Primary = `progress_rate`;
+   secondary = `mpjpe_l`; never read mpjpe_g as lower-is-better across
+   different survival lengths. See
+   `experiments/baseline-eval-diagnosis/RESULTS.md`.
+8. **The registry's believed knob values must be seeded from the run's
+   resolved config.** [measured] registry.yaml defaults describe the
+   Stage-2-patch context; the stock config is strict (0.15/0.15/0.2), so
+   `current_of()`'s fallback made v2's "one-notch" ee_body_pos change an
+   actual 0.15→0.35 jump. The driver now seeds beliefs from the run's
+   real starting values (`--base-knobs`); structural fix (registry reads
+   the resolved config.yaml itself) is queued.
