@@ -189,8 +189,15 @@ loosened terminations are partly definitional — context only.
   confound is unresolved.
 - **The tripwire still never faced a real test** (0 rollbacks); its guard
   behavior remains unit-test-only evidence.
-- Both arms remain on 2 curriculum motions resumed from one shared
-  baseline checkpoint — library-scale behavior is untested.
+- ~~Both arms remain on 2 curriculum motions resumed from one shared
+  baseline checkpoint — library-scale behavior is untested.~~
+  **CORRECTED 2026-07-09 [measured from run logs + resolved configs]:** v4
+  training ran on the full 116,924-motion `robot_curriculum` split ("Loaded
+  116924 motions" in every v4 segment log). What remains true: the shared
+  warm-start checkpoint (`baseline_10k` step 2000) had only ever seen 2
+  motions, and the termination-threshold action space does not shape the
+  training distribution. See `PHASE2_FINAL_REPORT_DRAFT.md` amendment +
+  `docs/design/10-library-scale-gate-program.md` §0.1.
 
 ## Bugs caught by/for this run
 

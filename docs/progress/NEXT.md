@@ -1,9 +1,19 @@
 # Next-Step Plan (start here)
 
-Last updated: **2026-07-02 end-of-day** — the Curriculum-Manager Agent (design doc
-[`08`](../design/08-curriculum-manager-agent.md), §11 amendments 1–8) is the main
-track. Phases 0–2-mechanism committed earlier; **the eval-scored ON-vs-OFF
-comparison has now RUN** (see below).
+Last updated: **2026-07-09** — the organizing plan is now
+[`10-library-scale-gate-program.md`](../design/10-library-scale-gate-program.md):
+research goal (library-scale tier-0 gate → teacher-LLM unfreeze on pass), design,
+implementation (I0–I4), experiments (G0–G6), and validation gates (V1–V8). Read
+that first; it supersedes `plan_v5_draft.md` and the Hermes NARROW-GO plan.
+Phase 2 closed with an adaptivity null (`PHASE2_FINAL_REPORT_DRAFT.md` + its
+2026-07-09 amendment: v4/E1 actually trained at 116,924-motion library scale;
+the stale "2 curriculum motions" caveat described only v3/warm-start).
+Immediate next: I0 (IsaacLab pilot closeout writeup) → I1 (tier-0 Hydra-swap
+insertion spike, the risk item) → G0/G1 GPU nights.
+
+Everything below this line is the pre-2026-07-09 state, kept for reference.
+
+---
 
 **State:** SONIC training + **eval-only im_eval passes** both run on this box
 (A10G, `isaac-lab-base` container — see [`../infra-guide.md`](../infra-guide.md)).

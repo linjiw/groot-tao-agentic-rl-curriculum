@@ -2,6 +2,29 @@
 
 **Status: DRAFT, 2026-07-08. Not yet through adversarial review; do not cite as final.**
 
+> **AMENDMENT (2026-07-09, recomputed from run logs — supersedes the "2 curriculum
+> motions" scale caveat everywhere it appears below):**
+>
+> 1. **v4 and E1 trained at library scale, not on 2 motions.** Training logs
+>    (`/workspace/wbc-training-logs/cmp_control_seed42_control_s1.log`,
+>    `cmp_scripted_seed1337_scripted_s1.log`) show "Loaded 116924 motions"
+>    (`motion_file: data/motion_lib_bones_seed/robot_curriculum` in every v4-era
+>    resolved config.yaml) [measured]. Only v3 and the shared `baseline_10k`
+>    warm-start trained on 2 motions. The correct scale caveat is: *the warm-start
+>    checkpoint had only ever seen 2 motions, the horizon was 500 iters, and the
+>    action space (termination thresholds) did not grip the 116k-motion training
+>    distribution* — not that the curriculum was 2 motions.
+> 2. **The seed-42 E5 replicates are not 4 independent runs.** rep2 ≡ rep3
+>    bit-exactly on all 9 shared segments (identical rew_series; rep2 is missing its
+>    control_s2 journal entry) [measured]. Distinct trajectories: rep1, rep2/3,
+>    rep4 → effective n=3, final progress_rate {0.0988, 0.1063, 0.0969} — a ±5%
+>    relative fixed-seed band, consistent with the E5b window-mean chaos floor.
+>    Any σ_rep computed from these four files without bit-identity collapse
+>    overstates n.
+>
+> Downstream consequence and the successor program:
+> `docs/design/10-library-scale-gate-program.md`.
+
 Scope: this report closes out phase 2 of the curriculum-manager line — the arc
 from the first eval-scored closed-loop run (v3), through the multi-seed
 campaign and its post-review amendment (v4), to the scripted-replay ablation
