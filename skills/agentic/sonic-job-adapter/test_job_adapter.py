@@ -71,6 +71,39 @@ def test_train_command_with_checkpoint_and_log():
     assert "nohup" in inner
 
 
+def test_train_command_tier0_env_and_pythonpath():
+    # doc 10 I1: tier-0 shim is injected via env vars + PYTHONPATH, NOT new
+    # Hydra keys. Env assignments must precede nohup (shell-assignment form).
+    cmd = build_train_command(
+        "g2_sigma_s1", log_path="/x/l.log",
+        env={"SONIC_TIER0_ACTIVE": "1", "SONIC_TIER0_EMA_RATE": "0.001"},
+        pythonpath="/workspace/rmc_tier0",
+        extra_overrides=[
+            "++manager_env.rewards.tracking_anchor_pos.func="
+            "adapters.sonic_tier0.sonic_sigma_ema_term:SigmaEMAAnchorPos"],
+    )
+    inner = cmd[-1]
+    assert "PYTHONPATH=/workspace/rmc_tier0:$PYTHONPATH" in inner
+    assert "SONIC_TIER0_ACTIVE=1" in inner
+    assert "SONIC_TIER0_EMA_RATE=0.001" in inner
+    assert "func=adapters.sonic_tier0.sonic_sigma_ema_term:SigmaEMAAnchorPos" in inner
+    # ordering: PYTHONPATH assignment before nohup before the interpreter
+    ppath_i = inner.index("PYTHONPATH=")
+    nohup_i = inner.index("nohup")
+    py_i = inner.index("/isaac-sim/python.sh")
+    assert ppath_i < nohup_i < py_i
+
+
+def test_train_command_no_env_is_unchanged():
+    # back-compat: with no env/pythonpath the command is byte-identical to
+    # the pre-tier0 shape (no stray assignments).
+    cmd = build_train_command("seg1", num_envs=64, iterations=10)
+    inner = cmd[-1]
+    assert "PYTHONPATH=" not in inner
+    assert "SONIC_TIER0" not in inner
+    assert inner.startswith("cd /workspace/GR00T-WholeBodyControl && /isaac-sim/python.sh")
+
+
 # ── log parsing against the REAL excerpt ─────────────────────────────
 @pytest.fixture()
 def excerpt_lines():

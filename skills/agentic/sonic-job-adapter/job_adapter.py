@@ -97,6 +97,8 @@ def build_train_command(
     log_path: Optional[str] = None,
     seed: int = 42,
     extra_overrides: Optional[List[str]] = None,
+    env: Optional[Dict[str, Any]] = None,
+    pythonpath: Optional[str] = None,
 ) -> List[str]:
     """The docker-exec launch, exactly as verified in infra-guide.md.
 
@@ -111,9 +113,28 @@ def build_train_command(
     so the held-out split never enters the training set (hard rule 4).
     NOT part of the manager's action space; the manager only reaches
     KNOB_TO_HYDRA.
+
+    `env`: extra environment variables set for the training PROCESS only
+    (prepended inside the `bash -c` before the interpreter). The tier-0
+    sigma-EMA shim reads its config this way (SONIC_TIER0_* — doc 10 I1)
+    so the pinned SONIC config schema is never extended. Values are shlex-
+    quoted. NOT part of the manager's action space.
+
+    `pythonpath`: prepended to PYTHONPATH for the training process — how
+    the tier-0 reward-term shim under /workspace becomes importable for a
+    `++manager_env.rewards.<term>.func=` override (I1_INSERTION_RECON F1).
     """
+    env_assignments: List[str] = []
+    if pythonpath:
+        env_assignments.append(f"PYTHONPATH={shlex.quote(pythonpath)}:$PYTHONPATH")
+    for k, v in sorted((env or {}).items()):
+        env_assignments.append(f"{k}={shlex.quote(str(v))}")
+    # env assignments must precede `nohup` — `nohup VAR=x cmd` would treat
+    # VAR=x as nohup's command, not a shell assignment. `VAR=x nohup cmd`
+    # is the correct form (the assignment scopes the whole simple command).
     parts = [
         f"cd {WBC_DIR} &&",
+        *env_assignments,
         "nohup" if log_path else "",
         PYTHON_SH, "gear_sonic/train_agent_trl.py",
         EXP_CONFIG,
