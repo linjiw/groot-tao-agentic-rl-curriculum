@@ -14,3 +14,7 @@ experiments/**/out/*.pt
 __pycache__/
 *.pyc
 .pytest_cache/
+.venv/
+experiments/curriculum-manager-phase2/heldout/.salt
+experiments/curriculum-manager-phase2/heldout/manifest.json
+experiments/curriculum-manager-phase2/heldout/eval_subset64.json
