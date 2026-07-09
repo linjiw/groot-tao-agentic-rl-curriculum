@@ -35,13 +35,18 @@ from .registry import (  # noqa: F401
 )
 from .digest import build_digest  # noqa: F401
 from .equivalence import (  # noqa: F401
+    DEFAULT_GATED_FIELDS,
     E5B_CHAOS_FLOOR_MEAN,
     E5B_CHAOS_FLOOR_POINTWISE,
     EquivalenceGate,
     GateReport,
+    JournalGateReport,
     calibrate_tau,
+    compare_journals,
+    journal_series,
     max_relative_deviation,
     mean_relative_deviation,
+    measured_tau,
 )
 from .tripwire import (  # noqa: F401
     EVAL_ABS_MIN_DROP,
@@ -72,6 +77,8 @@ __all__ = [
     "mean_relative_deviation", "E5B_CHAOS_FLOOR_MEAN",
     "E5B_CHAOS_FLOOR_POINTWISE",
     "max_relative_deviation",
+    "measured_tau", "compare_journals", "journal_series",
+    "JournalGateReport", "DEFAULT_GATED_FIELDS",
     "EVAL_ABS_MIN_DROP", "TripwireVerdict", "TripwireWatch",
     "effect_value", "score_effect", "tripwire_value",
     "DiskSpaceError", "LoopConfig", "RunManager", "control_config",

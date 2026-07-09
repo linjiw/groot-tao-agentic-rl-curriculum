@@ -214,3 +214,98 @@ def calibrate_tau(
             f"({min_effect_dev:.3g}); chaos floor too high or safety "
             f"factor too generous")
     return tau
+
+
+def measured_tau(min_effect_dev: Optional[float] = 0.10) -> float:
+    """The production tau: 3x the E5b take-3 measured window-mean chaos
+    floor -> ~3.93e-2 [measured 2026-07-08, SONIC/A10G, 50-iter window,
+    256 envs]. Guards by default against swallowing a 10% effect (the
+    smallest arm-level effect Phase-2 treated as real).
+
+    Re-measure the floor (an E5b-style probe on a continuously-acting
+    knob) when the engine, horizon, or env count changes materially —
+    this constant is SONIC/A10G evidence, not a universal law."""
+    return calibrate_tau(E5B_CHAOS_FLOOR_MEAN, min_effect_dev=min_effect_dev)
+
+
+# ── E6: tier-0 journal gate ──────────────────────────────────────────
+# Journal-level wiring of the two-gate verdict: two RunManager journals
+# (core.journal entry lists) in, one machine-readable equivalence
+# verdict out. This is the tier-0 reproducibility gate: replays,
+# control-arm re-runs and rollback re-executions are judged here before
+# any higher-tier (analytic-controller / LLM) comparison is allowed to
+# claim an effect.
+
+# journal fields gated by default: the two training-side series every
+# per-segment entry carries (byte-compatible with Phase-2 journals)
+DEFAULT_GATED_FIELDS = ("rew_mean_last", "len_mean_last")
+
+
+def journal_series(journal: Sequence[Dict],
+                   field: str = "rew_mean_last") -> List[float]:
+    """Per-segment metric series from a journal entry list.
+
+    Only per-segment entries count (entries carrying `segment` AND the
+    field key); lifecycle event entries (`segment_failed`,
+    `disk_gate_failed`, rollback events) are skipped — two runs that
+    diverge in WHICH segments ran will differ in series length and land
+    on INCOMPARABLE, which is the honest verdict. A present-but-None
+    value becomes NaN so the gate's NaN discipline applies (paired
+    None/None positions carry no signal; None vs number poisons)."""
+    out: List[float] = []
+    for e in journal:
+        if "segment" not in e or field not in e:
+            continue
+        v = e[field]
+        out.append(float("nan") if v is None else float(v))
+    return out
+
+
+# severity order for the composite verdict: the worst field wins
+_VERDICT_RANK = {VERDICT_BIT_IDENTICAL: 0, VERDICT_WITHIN_TAU: 1,
+                 VERDICT_INCOMPARABLE: 2, VERDICT_DIVERGED: 3}
+
+
+@dataclasses.dataclass
+class JournalGateReport:
+    """Composite verdict over one journal pair: per-field GateReports
+    plus the worst-field overall verdict."""
+
+    verdict: str                       # worst field verdict
+    fields: Dict[str, GateReport]      # per-field reports
+    tau: Optional[float]
+
+    @property
+    def equivalent(self) -> bool:
+        return self.verdict in (VERDICT_BIT_IDENTICAL, VERDICT_WITHIN_TAU)
+
+    def to_dict(self) -> Dict:
+        return {"verdict": self.verdict, "tau": self.tau,
+                "equivalent": self.equivalent,
+                "fields": {k: r.to_dict() for k, r in self.fields.items()}}
+
+
+def compare_journals(
+    journal_a: Sequence[Dict], journal_b: Sequence[Dict],
+    tau: Optional[float] = None,
+    fields: Sequence[str] = DEFAULT_GATED_FIELDS,
+) -> JournalGateReport:
+    """E6 tier-0 gate: judge two RunManager journals equivalent or not.
+
+    Each field's per-segment series goes through the two-gate
+    EquivalenceGate (gate 0 bit identity; gate 1 window-mean tolerance
+    at `tau`). The composite verdict is the WORST field verdict —
+    a single diverged series fails the pair, and a length mismatch
+    (different segment counts) is INCOMPARABLE, never silently
+    truncated. `tau=None` still allows a BIT_IDENTICAL composite but
+    raises (via EquivalenceGate) as soon as any field needs a numeric
+    verdict; pass measured_tau() for the calibrated production gate."""
+    if not fields:
+        raise ValueError("compare_journals needs at least one field")
+    gate = EquivalenceGate(tau=tau)
+    reports: Dict[str, GateReport] = {}
+    for field in fields:
+        reports[field] = gate.compare(journal_series(journal_a, field),
+                                      journal_series(journal_b, field))
+    worst = max(reports.values(), key=lambda r: _VERDICT_RANK[r.verdict])
+    return JournalGateReport(verdict=worst.verdict, fields=reports, tau=tau)

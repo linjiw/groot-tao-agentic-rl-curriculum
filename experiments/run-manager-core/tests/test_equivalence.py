@@ -7,11 +7,14 @@ rewards (0.69315 vs 0.66776 -> rel dev ~3.7e-2) and bit-identical
 probe_a/probe_b series.
 """
 
+import json
 import math
+import os
 
 import pytest
 
 from core.equivalence import (
+    DEFAULT_GATED_FIELDS,
     E5B_CHAOS_FLOOR_MEAN,
     E5B_CHAOS_FLOOR_POINTWISE,
     VERDICT_BIT_IDENTICAL,
@@ -20,8 +23,11 @@ from core.equivalence import (
     VERDICT_WITHIN_TAU,
     EquivalenceGate,
     calibrate_tau,
+    compare_journals,
+    journal_series,
     max_relative_deviation,
     mean_relative_deviation,
+    measured_tau,
 )
 
 REP3_S8_HEAD = [0.69315, 1.10942, 1.15485]
@@ -138,3 +144,100 @@ def test_tau_from_measured_e5b_floor():
     # end-to-end: the rep4-style pair is equivalent under measured tau
     r = EquivalenceGate(tau=tau).compare(REP3_S8_HEAD, REP4_S8_HEAD)
     assert r.verdict == VERDICT_WITHIN_TAU
+
+
+def test_measured_tau_is_the_calibrated_production_value():
+    assert math.isclose(measured_tau(), 3 * E5B_CHAOS_FLOOR_MEAN)
+    with pytest.raises(ValueError):    # guard still armed
+        measured_tau(min_effect_dev=0.01)
+    assert math.isclose(measured_tau(min_effect_dev=None),
+                        3 * E5B_CHAOS_FLOOR_MEAN)
+
+
+# ── E6: tier-0 journal gate ──────────────────────────────────────────
+def _entry(tick, rew, ln=100.0, **extra):
+    e = {"tick": tick, "segment": f"seg{tick:03d}", "knobs_in": {},
+         "rew_mean_last": rew, "len_mean_last": ln}
+    e.update(extra)
+    return e
+
+
+def test_journal_series_skips_event_entries_and_maps_none_to_nan():
+    j = [_entry(0, 1.0), {"tick": 1, "segment": "seg001", "event": "rollback"},
+         {"tick": 2, "event": "disk_gate_failed"}, _entry(3, None)]
+    s = journal_series(j, "rew_mean_last")
+    # the rollback event entry lacks rew_mean_last -> skipped; the
+    # None-valued segment entry becomes NaN
+    assert len(s) == 2 and s[0] == 1.0 and math.isnan(s[1])
+
+
+def test_compare_journals_bit_identical_without_tau():
+    a = [_entry(i, 1.0 + i) for i in range(5)]
+    b = [_entry(i, 1.0 + i) for i in range(5)]
+    r = compare_journals(a, b, tau=None)
+    assert r.verdict == VERDICT_BIT_IDENTICAL and r.equivalent
+    assert set(r.fields) == set(DEFAULT_GATED_FIELDS)
+
+
+def test_compare_journals_worst_field_wins():
+    # rew series identical, len series diverged -> composite DIVERGED
+    a = [_entry(i, 1.0, ln=100.0) for i in range(5)]
+    b = [_entry(i, 1.0, ln=200.0) for i in range(5)]
+    r = compare_journals(a, b, tau=measured_tau())
+    assert r.fields["rew_mean_last"].verdict == VERDICT_BIT_IDENTICAL
+    assert r.fields["len_mean_last"].verdict == VERDICT_DIVERGED
+    assert r.verdict == VERDICT_DIVERGED and not r.equivalent
+
+
+def test_compare_journals_segment_count_mismatch_incomparable():
+    a = [_entry(i, 1.0) for i in range(5)]
+    b = [_entry(i, 1.0) for i in range(4)]  # one segment missing
+    r = compare_journals(a, b, tau=measured_tau())
+    assert r.verdict == VERDICT_INCOMPARABLE and not r.equivalent
+
+
+def test_compare_journals_within_measured_tau():
+    # 1% mean shift on rew: below tau=3.93e-2 -> equivalent, not bit-id
+    a = [_entry(i, 1.0) for i in range(5)]
+    b = [_entry(i, 1.01) for i in range(5)]
+    r = compare_journals(a, b, tau=measured_tau())
+    assert r.verdict == VERDICT_WITHIN_TAU and r.equivalent
+    d = r.to_dict()
+    assert d["equivalent"] and d["fields"]["rew_mean_last"]["verdict"] == \
+        VERDICT_WITHIN_TAU
+
+
+def test_compare_journals_requires_fields():
+    with pytest.raises(ValueError):
+        compare_journals([], [], tau=1.0, fields=())
+
+
+# ── E6 real-data check: actual Phase-2 journals ──────────────────────
+_P2 = os.path.join(os.path.dirname(__file__), "..", "..",
+                   "curriculum-manager-phase2")
+
+
+def _load_p2(name):
+    with open(os.path.join(_P2, name)) as f:
+        return json.load(f)
+
+
+@pytest.mark.skipif(not os.path.isdir(_P2),
+                    reason="phase-2 journals not present")
+def test_e5c_probe_journals_bit_identical():
+    # E5c determinism evidence, judged by the E6 gate itself:
+    # probe_a vs probe_b were byte-for-byte identical runs
+    a, b = _load_p2("control_journal_probe_a.json"), \
+        _load_p2("control_journal_probe_b.json")
+    r = compare_journals(a, b, tau=measured_tau())
+    assert r.verdict == VERDICT_BIT_IDENTICAL
+
+
+@pytest.mark.skipif(not os.path.isdir(_P2),
+                    reason="phase-2 journals not present")
+def test_seed42_vs_seed1337_not_bit_identical():
+    # different seeds must NOT pass gate 0 (sanity: the gate can fail)
+    a, b = _load_p2("control_journal_v4_seed42.json"), \
+        _load_p2("control_journal_v4_seed1337.json")
+    r = compare_journals(a, b, tau=measured_tau())
+    assert r.verdict != VERDICT_BIT_IDENTICAL
