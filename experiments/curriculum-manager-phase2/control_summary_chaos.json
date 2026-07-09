@@ -1,0 +1,24 @@
+{
+  "arm": "control",
+  "segments": 1,
+  "decisions_applied": 0,
+  "rollbacks": 0,
+  "rejected": 0,
+  "final_knobs": {
+    "termination_threshold.anchor_pos": 0.15000001,
+    "termination_threshold.ee_body_pos": 0.15,
+    "termination_threshold.foot_pos_xyz": 0.2
+  },
+  "rew_series": [
+    0.94504
+  ],
+  "len_series": [
+    14.75
+  ],
+  "eval_progress_series": [
+    0.1083224031390273
+  ],
+  "eval_mpjpe_series": [
+    60.14499783615615
+  ]
+}

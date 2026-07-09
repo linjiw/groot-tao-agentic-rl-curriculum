@@ -1,0 +1,325 @@
+[
+  {
+    "tick": 1,
+    "segment": "control_s1",
+    "knobs_in": {
+      "termination_threshold.anchor_pos": 0.15,
+      "termination_threshold.ee_body_pos": 0.15,
+      "termination_threshold.foot_pos_xyz": 0.2
+    },
+    "rew_mean_last": 0.99818,
+    "len_mean_last": 15.32,
+    "config_verify": {
+      "status": "ok",
+      "checked": [
+        "uniform_sampling_rate",
+        "adp_samp_failure_rate_max_over_mean",
+        "bin_size",
+        "termination_threshold.anchor_pos",
+        "termination_threshold.ee_body_pos",
+        "termination_threshold.foot_pos_xyz",
+        "desired_kl",
+        "entropy_coef"
+      ],
+      "missing": [],
+      "adopted": {
+        "uniform_sampling_rate": 0.1,
+        "adp_samp_failure_rate_max_over_mean": 200,
+        "bin_size": 50,
+        "desired_kl": 0.01,
+        "entropy_coef": 0.01
+      },
+      "drifts": {}
+    },
+    "eval_error": "GPU busy: training or eval already running in the container",
+    "heldout_error": "GPU busy: training or eval already running in the container",
+    "decision": {
+      "action": "none",
+      "reason": "control arm"
+    }
+  },
+  {
+    "tick": 2,
+    "segment": "control_s2",
+    "knobs_in": {
+      "termination_threshold.anchor_pos": 0.15,
+      "termination_threshold.ee_body_pos": 0.15,
+      "termination_threshold.foot_pos_xyz": 0.2
+    },
+    "rew_mean_last": null,
+    "len_mean_last": null,
+    "config_verify": {
+      "status": "no_config_yaml"
+    },
+    "eval_error": "segment control_s2 has no checkpoint to evaluate",
+    "heldout_error": "segment control_s2 has no checkpoint to evaluate",
+    "decision": {
+      "action": "none",
+      "reason": "control arm"
+    }
+  },
+  {
+    "tick": 3,
+    "segment": "control_s3",
+    "knobs_in": {
+      "termination_threshold.anchor_pos": 0.15,
+      "termination_threshold.ee_body_pos": 0.15,
+      "termination_threshold.foot_pos_xyz": 0.2
+    },
+    "rew_mean_last": 1.02656,
+    "len_mean_last": 14.36,
+    "config_verify": {
+      "status": "ok",
+      "checked": [
+        "uniform_sampling_rate",
+        "adp_samp_failure_rate_max_over_mean",
+        "bin_size",
+        "termination_threshold.anchor_pos",
+        "termination_threshold.ee_body_pos",
+        "termination_threshold.foot_pos_xyz",
+        "desired_kl",
+        "entropy_coef"
+      ],
+      "missing": [],
+      "adopted": {},
+      "drifts": {}
+    },
+    "eval_error": "GPU busy: training or eval already running in the container",
+    "heldout_error": "GPU busy: training or eval already running in the container",
+    "decision": {
+      "action": "none",
+      "reason": "control arm"
+    }
+  },
+  {
+    "tick": 4,
+    "segment": "control_s4",
+    "knobs_in": {
+      "termination_threshold.anchor_pos": 0.15,
+      "termination_threshold.ee_body_pos": 0.15,
+      "termination_threshold.foot_pos_xyz": 0.2
+    },
+    "rew_mean_last": 0.93903,
+    "len_mean_last": 14.62,
+    "config_verify": {
+      "status": "ok",
+      "checked": [
+        "uniform_sampling_rate",
+        "adp_samp_failure_rate_max_over_mean",
+        "bin_size",
+        "termination_threshold.anchor_pos",
+        "termination_threshold.ee_body_pos",
+        "termination_threshold.foot_pos_xyz",
+        "desired_kl",
+        "entropy_coef"
+      ],
+      "missing": [],
+      "adopted": {},
+      "drifts": {}
+    },
+    "eval_error": "GPU busy: training or eval already running in the container",
+    "heldout_error": "GPU busy: training or eval already running in the container",
+    "decision": {
+      "action": "none",
+      "reason": "control arm"
+    }
+  },
+  {
+    "tick": 5,
+    "segment": "control_s5",
+    "knobs_in": {
+      "termination_threshold.anchor_pos": 0.15,
+      "termination_threshold.ee_body_pos": 0.15,
+      "termination_threshold.foot_pos_xyz": 0.2
+    },
+    "rew_mean_last": 1.01459,
+    "len_mean_last": 14.29,
+    "config_verify": {
+      "status": "ok",
+      "checked": [
+        "uniform_sampling_rate",
+        "adp_samp_failure_rate_max_over_mean",
+        "bin_size",
+        "termination_threshold.anchor_pos",
+        "termination_threshold.ee_body_pos",
+        "termination_threshold.foot_pos_xyz",
+        "desired_kl",
+        "entropy_coef"
+      ],
+      "missing": [],
+      "adopted": {},
+      "drifts": {}
+    },
+    "eval_error": "GPU busy: training or eval already running in the container",
+    "heldout_error": "GPU busy: training or eval already running in the container",
+    "decision": {
+      "action": "none",
+      "reason": "control arm"
+    }
+  },
+  {
+    "tick": 6,
+    "segment": "control_s6",
+    "knobs_in": {
+      "termination_threshold.anchor_pos": 0.15,
+      "termination_threshold.ee_body_pos": 0.15,
+      "termination_threshold.foot_pos_xyz": 0.2
+    },
+    "rew_mean_last": 0.92592,
+    "len_mean_last": 13.67,
+    "config_verify": {
+      "status": "ok",
+      "checked": [
+        "uniform_sampling_rate",
+        "adp_samp_failure_rate_max_over_mean",
+        "bin_size",
+        "termination_threshold.anchor_pos",
+        "termination_threshold.ee_body_pos",
+        "termination_threshold.foot_pos_xyz",
+        "desired_kl",
+        "entropy_coef"
+      ],
+      "missing": [],
+      "adopted": {},
+      "drifts": {}
+    },
+    "eval_error": "GPU busy: training or eval already running in the container",
+    "heldout_error": "GPU busy: training or eval already running in the container",
+    "decision": {
+      "action": "none",
+      "reason": "control arm"
+    }
+  },
+  {
+    "tick": 7,
+    "segment": "control_s7",
+    "knobs_in": {
+      "termination_threshold.anchor_pos": 0.15,
+      "termination_threshold.ee_body_pos": 0.15,
+      "termination_threshold.foot_pos_xyz": 0.2
+    },
+    "rew_mean_last": 1.16094,
+    "len_mean_last": 16.94,
+    "config_verify": {
+      "status": "ok",
+      "checked": [
+        "uniform_sampling_rate",
+        "adp_samp_failure_rate_max_over_mean",
+        "bin_size",
+        "termination_threshold.anchor_pos",
+        "termination_threshold.ee_body_pos",
+        "termination_threshold.foot_pos_xyz",
+        "desired_kl",
+        "entropy_coef"
+      ],
+      "missing": [],
+      "adopted": {},
+      "drifts": {}
+    },
+    "eval_error": "GPU busy: training or eval already running in the container",
+    "heldout_error": "GPU busy: training or eval already running in the container",
+    "decision": {
+      "action": "none",
+      "reason": "control arm"
+    }
+  },
+  {
+    "tick": 8,
+    "segment": "control_s8",
+    "knobs_in": {
+      "termination_threshold.anchor_pos": 0.15,
+      "termination_threshold.ee_body_pos": 0.15,
+      "termination_threshold.foot_pos_xyz": 0.2
+    },
+    "rew_mean_last": 0.88118,
+    "len_mean_last": 14.8,
+    "config_verify": {
+      "status": "ok",
+      "checked": [
+        "uniform_sampling_rate",
+        "adp_samp_failure_rate_max_over_mean",
+        "bin_size",
+        "termination_threshold.anchor_pos",
+        "termination_threshold.ee_body_pos",
+        "termination_threshold.foot_pos_xyz",
+        "desired_kl",
+        "entropy_coef"
+      ],
+      "missing": [],
+      "adopted": {},
+      "drifts": {}
+    },
+    "eval_error": "GPU busy: training or eval already running in the container",
+    "heldout_error": "GPU busy: training or eval already running in the container",
+    "decision": {
+      "action": "none",
+      "reason": "control arm"
+    }
+  },
+  {
+    "tick": 9,
+    "segment": "control_s9",
+    "knobs_in": {
+      "termination_threshold.anchor_pos": 0.15,
+      "termination_threshold.ee_body_pos": 0.15,
+      "termination_threshold.foot_pos_xyz": 0.2
+    },
+    "rew_mean_last": 0.81564,
+    "len_mean_last": 13.36,
+    "config_verify": {
+      "status": "ok",
+      "checked": [
+        "uniform_sampling_rate",
+        "adp_samp_failure_rate_max_over_mean",
+        "bin_size",
+        "termination_threshold.anchor_pos",
+        "termination_threshold.ee_body_pos",
+        "termination_threshold.foot_pos_xyz",
+        "desired_kl",
+        "entropy_coef"
+      ],
+      "missing": [],
+      "adopted": {},
+      "drifts": {}
+    },
+    "eval_error": "GPU busy: training or eval already running in the container",
+    "heldout_error": "GPU busy: training or eval already running in the container",
+    "decision": {
+      "action": "none",
+      "reason": "control arm"
+    }
+  },
+  {
+    "tick": 10,
+    "segment": "control_s10",
+    "knobs_in": {
+      "termination_threshold.anchor_pos": 0.15,
+      "termination_threshold.ee_body_pos": 0.15,
+      "termination_threshold.foot_pos_xyz": 0.2
+    },
+    "rew_mean_last": 0.94951,
+    "len_mean_last": 14.04,
+    "config_verify": {
+      "status": "ok",
+      "checked": [
+        "uniform_sampling_rate",
+        "adp_samp_failure_rate_max_over_mean",
+        "bin_size",
+        "termination_threshold.anchor_pos",
+        "termination_threshold.ee_body_pos",
+        "termination_threshold.foot_pos_xyz",
+        "desired_kl",
+        "entropy_coef"
+      ],
+      "missing": [],
+      "adopted": {},
+      "drifts": {}
+    },
+    "eval_error": "GPU busy: training or eval already running in the container",
+    "heldout_error": "GPU busy: training or eval already running in the container",
+    "decision": {
+      "action": "none",
+      "reason": "control arm"
+    }
+  }
+]

@@ -1,0 +1,12 @@
+Traceback (most recent call last):
+  File "/home/ec2-user/work/groot-tao-agentic-rl-curriculum/experiments/curriculum-manager-phase2/smoke_driver.py", line 872, in <module>
+    raise SystemExit(main())
+  File "/home/ec2-user/work/groot-tao-agentic-rl-curriculum/experiments/curriculum-manager-phase2/smoke_driver.py", line 863, in main
+    summary = driver.run(args.segments)
+  File "/home/ec2-user/work/groot-tao-agentic-rl-curriculum/experiments/curriculum-manager-phase2/smoke_driver.py", line 658, in run
+    self._purge_segment(seg, entry)
+  File "/home/ec2-user/work/groot-tao-agentic-rl-curriculum/experiments/curriculum-manager-phase2/smoke_driver.py", line 541, in _purge_segment
+    deleted, freed = purge_intermediate_checkpoints(run_dir)
+  File "/home/ec2-user/work/groot-tao-agentic-rl-curriculum/experiments/curriculum-manager-phase2/smoke_driver.py", line 131, in purge_intermediate_checkpoints
+    os.remove(path)
+PermissionError: [Errno 13] Permission denied: '/workspace/wbc-training-logs/cmp_scripted_seed42/scripted_s1-20260707_210158/last.pt'

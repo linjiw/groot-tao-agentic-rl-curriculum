@@ -1,0 +1,60 @@
+{
+  "arm": "control",
+  "segments": 10,
+  "decisions_applied": 0,
+  "rollbacks": 0,
+  "rejected": 0,
+  "final_knobs": {
+    "termination_threshold.anchor_pos": 0.15,
+    "termination_threshold.ee_body_pos": 0.15,
+    "termination_threshold.foot_pos_xyz": 0.2
+  },
+  "rew_series": [
+    0.99818,
+    null,
+    1.02656,
+    0.93903,
+    1.01459,
+    0.92592,
+    1.16094,
+    0.88118,
+    0.81564,
+    0.94951
+  ],
+  "len_series": [
+    15.32,
+    null,
+    14.36,
+    14.62,
+    14.29,
+    13.67,
+    16.94,
+    14.8,
+    13.36,
+    14.04
+  ],
+  "eval_progress_series": [
+    null,
+    null,
+    null,
+    null,
+    null,
+    null,
+    null,
+    null,
+    null,
+    null
+  ],
+  "eval_mpjpe_series": [
+    null,
+    null,
+    null,
+    null,
+    null,
+    null,
+    null,
+    null,
+    null,
+    null
+  ]
+}

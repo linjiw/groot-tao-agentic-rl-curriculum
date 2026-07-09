@@ -1,0 +1,16 @@
+=== multiseed v4: seeds=[42 1337] arms=[control] segs=10 iters=50 envs=256 eval_envs=64 dry_run=0 ===
+=== 04:14:29 seed=42 arm=control start ===
+=== 06:16:48 seed=42 arm=control done rc=0 ===
+=== 06:16:48 seed=1337 arm=control start ===
+=== 08:17:24 seed=1337 arm=control done rc=0 ===
+=== multiseed v4 complete 08:17:24 ===
+=== multiseed v4: seeds=[42 1337] arms=[control] segs=10 iters=50 envs=256 eval_envs=64 dry_run=0 ===
+=== 08:17:24 seed=42 arm=control start ===
+=== 10:15:08 seed=42 arm=control done rc=0 ===
+=== 10:15:08 seed=1337 arm=control start ===
+=== 12:11:00 seed=1337 arm=control done rc=0 ===
+=== multiseed v4 complete 12:11:00 ===
+=== multiseed v4: seeds=[42] arms=[control] segs=10 iters=50 envs=256 eval_envs=64 dry_run=0 ===
+=== 16:31:38 seed=42 arm=control start ===
+=== 18:28:22 seed=42 arm=control done rc=0 ===
+=== multiseed v4 complete 18:28:22 ===

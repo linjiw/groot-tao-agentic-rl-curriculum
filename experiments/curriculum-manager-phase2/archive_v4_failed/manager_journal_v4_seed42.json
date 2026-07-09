@@ -1,0 +1,458 @@
+[
+  {
+    "tick": 1,
+    "segment": "manager_s1",
+    "knobs_in": {
+      "termination_threshold.anchor_pos": 0.15,
+      "termination_threshold.ee_body_pos": 0.15,
+      "termination_threshold.foot_pos_xyz": 0.2
+    },
+    "rew_mean_last": 0.89844,
+    "len_mean_last": 13.18,
+    "config_verify": {
+      "status": "ok",
+      "checked": [
+        "uniform_sampling_rate",
+        "adp_samp_failure_rate_max_over_mean",
+        "bin_size",
+        "termination_threshold.anchor_pos",
+        "termination_threshold.ee_body_pos",
+        "termination_threshold.foot_pos_xyz",
+        "desired_kl",
+        "entropy_coef"
+      ],
+      "missing": [],
+      "adopted": {
+        "uniform_sampling_rate": 0.1,
+        "adp_samp_failure_rate_max_over_mean": 200,
+        "bin_size": 50,
+        "desired_kl": 0.01,
+        "entropy_coef": 0.01
+      },
+      "drifts": {}
+    },
+    "eval_error": "GPU busy: training or eval already running in the container",
+    "heldout_error": "GPU busy: training or eval already running in the container",
+    "decision": {
+      "action": "none",
+      "reason": "len [13.2] inside [20.0, 200.0] band or sustain unmet"
+    }
+  },
+  {
+    "tick": 2,
+    "segment": "manager_s2",
+    "knobs_in": {
+      "termination_threshold.anchor_pos": 0.15,
+      "termination_threshold.ee_body_pos": 0.15,
+      "termination_threshold.foot_pos_xyz": 0.2
+    },
+    "rew_mean_last": 1.07132,
+    "len_mean_last": 14.81,
+    "config_verify": {
+      "status": "ok",
+      "checked": [
+        "uniform_sampling_rate",
+        "adp_samp_failure_rate_max_over_mean",
+        "bin_size",
+        "termination_threshold.anchor_pos",
+        "termination_threshold.ee_body_pos",
+        "termination_threshold.foot_pos_xyz",
+        "desired_kl",
+        "entropy_coef"
+      ],
+      "missing": [],
+      "adopted": {},
+      "drifts": {}
+    },
+    "eval_error": "GPU busy: training or eval already running in the container",
+    "heldout_error": "GPU busy: training or eval already running in the container",
+    "decision": {
+      "action": "set",
+      "knob": "termination_threshold.foot_pos_xyz",
+      "value": 0.25,
+      "rationale": "mean episode length [13.2, 14.8] < 20.0 for 2 segments; termination_threshold.foot_pos_xyz is the binding termination axis (windowed mean 0.58 of episodes; training-side signal; training-side guard (no eval stream); no held-out here)",
+      "expected_effect": "episodes lengthen; eval progress_rate does not fall",
+      "expected_effect_check": {
+        "metric": "Episode/len_mean",
+        "op": ">=",
+        "value": 20.0
+      },
+      "tripwire": {
+        "metric": "Episode/rew_mean",
+        "drop_pct": 20,
+        "evals": 2
+      }
+    },
+    "validation": {
+      "ok": true,
+      "errors": []
+    },
+    "applied": true,
+    "outcome": "survived_effect_not_observed",
+    "digest_hash": "1b181fc123b4",
+    "applied_at_iter": 100,
+    "effect": {
+      "check": {
+        "metric": "Episode/len_mean",
+        "op": ">=",
+        "value": 20.0
+      },
+      "observed": 14.28,
+      "confirmed": false
+    }
+  },
+  {
+    "tick": 3,
+    "segment": "manager_s3",
+    "knobs_in": {
+      "termination_threshold.anchor_pos": 0.15,
+      "termination_threshold.ee_body_pos": 0.15,
+      "termination_threshold.foot_pos_xyz": 0.25
+    },
+    "rew_mean_last": 0.94728,
+    "len_mean_last": 13.91,
+    "config_verify": {
+      "status": "ok",
+      "checked": [
+        "uniform_sampling_rate",
+        "adp_samp_failure_rate_max_over_mean",
+        "bin_size",
+        "termination_threshold.anchor_pos",
+        "termination_threshold.ee_body_pos",
+        "termination_threshold.foot_pos_xyz",
+        "desired_kl",
+        "entropy_coef"
+      ],
+      "missing": [],
+      "adopted": {},
+      "drifts": {}
+    },
+    "eval_error": "GPU busy: training or eval already running in the container",
+    "heldout_error": "GPU busy: training or eval already running in the container",
+    "decision": {
+      "action": "none",
+      "reason": "pending decision on termination_threshold.foot_pos_xyz still under tripwire watch (one change at a time)"
+    }
+  },
+  {
+    "tick": 4,
+    "segment": "manager_s4",
+    "knobs_in": {
+      "termination_threshold.anchor_pos": 0.15,
+      "termination_threshold.ee_body_pos": 0.15,
+      "termination_threshold.foot_pos_xyz": 0.25
+    },
+    "rew_mean_last": 0.9129,
+    "len_mean_last": 14.28,
+    "config_verify": {
+      "status": "ok",
+      "checked": [
+        "uniform_sampling_rate",
+        "adp_samp_failure_rate_max_over_mean",
+        "bin_size",
+        "termination_threshold.anchor_pos",
+        "termination_threshold.ee_body_pos",
+        "termination_threshold.foot_pos_xyz",
+        "desired_kl",
+        "entropy_coef"
+      ],
+      "missing": [],
+      "adopted": {},
+      "drifts": {}
+    },
+    "eval_error": "GPU busy: training or eval already running in the container",
+    "heldout_error": "GPU busy: training or eval already running in the container",
+    "decision": {
+      "action": "set",
+      "knob": "termination_threshold.ee_body_pos",
+      "value": 0.2,
+      "rationale": "mean episode length [13.9, 14.3] < 20.0 for 2 segments; termination_threshold.ee_body_pos is the binding termination axis (windowed mean 0.47 of episodes; training-side signal; training-side guard (no eval stream); no held-out here)",
+      "expected_effect": "episodes lengthen; eval progress_rate does not fall",
+      "expected_effect_check": {
+        "metric": "Episode/len_mean",
+        "op": ">=",
+        "value": 20.0
+      },
+      "tripwire": {
+        "metric": "Episode/rew_mean",
+        "drop_pct": 20,
+        "evals": 2
+      }
+    },
+    "validation": {
+      "ok": true,
+      "errors": []
+    },
+    "applied": true,
+    "outcome": "survived_effect_not_observed",
+    "digest_hash": "401113189723",
+    "applied_at_iter": 200,
+    "effect": {
+      "check": {
+        "metric": "Episode/len_mean",
+        "op": ">=",
+        "value": 20.0
+      },
+      "observed": 17.18,
+      "confirmed": false
+    }
+  },
+  {
+    "tick": 5,
+    "segment": "manager_s5",
+    "knobs_in": {
+      "termination_threshold.anchor_pos": 0.15,
+      "termination_threshold.ee_body_pos": 0.2,
+      "termination_threshold.foot_pos_xyz": 0.25
+    },
+    "rew_mean_last": 1.42466,
+    "len_mean_last": 18.86,
+    "config_verify": {
+      "status": "ok",
+      "checked": [
+        "uniform_sampling_rate",
+        "adp_samp_failure_rate_max_over_mean",
+        "bin_size",
+        "termination_threshold.anchor_pos",
+        "termination_threshold.ee_body_pos",
+        "termination_threshold.foot_pos_xyz",
+        "desired_kl",
+        "entropy_coef"
+      ],
+      "missing": [],
+      "adopted": {},
+      "drifts": {}
+    },
+    "eval_error": "GPU busy: training or eval already running in the container",
+    "heldout_error": "GPU busy: training or eval already running in the container",
+    "decision": {
+      "action": "none",
+      "reason": "pending decision on termination_threshold.ee_body_pos still under tripwire watch (one change at a time)"
+    }
+  },
+  {
+    "tick": 6,
+    "segment": "manager_s6",
+    "knobs_in": {
+      "termination_threshold.anchor_pos": 0.15,
+      "termination_threshold.ee_body_pos": 0.2,
+      "termination_threshold.foot_pos_xyz": 0.25
+    },
+    "rew_mean_last": 1.18438,
+    "len_mean_last": 17.18,
+    "config_verify": {
+      "status": "ok",
+      "checked": [
+        "uniform_sampling_rate",
+        "adp_samp_failure_rate_max_over_mean",
+        "bin_size",
+        "termination_threshold.anchor_pos",
+        "termination_threshold.ee_body_pos",
+        "termination_threshold.foot_pos_xyz",
+        "desired_kl",
+        "entropy_coef"
+      ],
+      "missing": [],
+      "adopted": {},
+      "drifts": {}
+    },
+    "eval_error": "GPU busy: training or eval already running in the container",
+    "heldout_error": "GPU busy: training or eval already running in the container",
+    "decision": {
+      "action": "set",
+      "knob": "termination_threshold.foot_pos_xyz",
+      "value": 0.3,
+      "rationale": "mean episode length [18.9, 17.2] < 20.0 for 2 segments; termination_threshold.foot_pos_xyz is the binding termination axis (windowed mean 0.51 of episodes; training-side signal; training-side guard (no eval stream); no held-out here)",
+      "expected_effect": "episodes lengthen; eval progress_rate does not fall",
+      "expected_effect_check": {
+        "metric": "Episode/len_mean",
+        "op": ">=",
+        "value": 20.0
+      },
+      "tripwire": {
+        "metric": "Episode/rew_mean",
+        "drop_pct": 20,
+        "evals": 2
+      }
+    },
+    "validation": {
+      "ok": true,
+      "errors": []
+    },
+    "applied": true,
+    "outcome": "survived_effect_not_observed",
+    "digest_hash": "61e021d01bc4",
+    "applied_at_iter": 300,
+    "effect": {
+      "check": {
+        "metric": "Episode/len_mean",
+        "op": ">=",
+        "value": 20.0
+      },
+      "observed": 19.02,
+      "confirmed": false
+    }
+  },
+  {
+    "tick": 7,
+    "segment": "manager_s7",
+    "knobs_in": {
+      "termination_threshold.anchor_pos": 0.15,
+      "termination_threshold.ee_body_pos": 0.2,
+      "termination_threshold.foot_pos_xyz": 0.3
+    },
+    "rew_mean_last": 1.05015,
+    "len_mean_last": 16.74,
+    "config_verify": {
+      "status": "ok",
+      "checked": [
+        "uniform_sampling_rate",
+        "adp_samp_failure_rate_max_over_mean",
+        "bin_size",
+        "termination_threshold.anchor_pos",
+        "termination_threshold.ee_body_pos",
+        "termination_threshold.foot_pos_xyz",
+        "desired_kl",
+        "entropy_coef"
+      ],
+      "missing": [],
+      "adopted": {},
+      "drifts": {}
+    },
+    "eval_error": "GPU busy: training or eval already running in the container",
+    "heldout_error": "GPU busy: training or eval already running in the container",
+    "decision": {
+      "action": "none",
+      "reason": "pending decision on termination_threshold.foot_pos_xyz still under tripwire watch (one change at a time)"
+    }
+  },
+  {
+    "tick": 8,
+    "segment": "manager_s8",
+    "knobs_in": {
+      "termination_threshold.anchor_pos": 0.15,
+      "termination_threshold.ee_body_pos": 0.2,
+      "termination_threshold.foot_pos_xyz": 0.3
+    },
+    "rew_mean_last": 1.26676,
+    "len_mean_last": 19.02,
+    "config_verify": {
+      "status": "ok",
+      "checked": [
+        "uniform_sampling_rate",
+        "adp_samp_failure_rate_max_over_mean",
+        "bin_size",
+        "termination_threshold.anchor_pos",
+        "termination_threshold.ee_body_pos",
+        "termination_threshold.foot_pos_xyz",
+        "desired_kl",
+        "entropy_coef"
+      ],
+      "missing": [],
+      "adopted": {},
+      "drifts": {}
+    },
+    "eval_error": "GPU busy: training or eval already running in the container",
+    "heldout_error": "GPU busy: training or eval already running in the container",
+    "decision": {
+      "action": "set",
+      "knob": "termination_threshold.ee_body_pos",
+      "value": 0.25,
+      "rationale": "mean episode length [16.7, 19.0] < 20.0 for 2 segments; termination_threshold.ee_body_pos is the binding termination axis (windowed mean 0.38 of episodes; training-side signal; training-side guard (no eval stream); no held-out here)",
+      "expected_effect": "episodes lengthen; eval progress_rate does not fall",
+      "expected_effect_check": {
+        "metric": "Episode/len_mean",
+        "op": ">=",
+        "value": 20.0
+      },
+      "tripwire": {
+        "metric": "Episode/rew_mean",
+        "drop_pct": 20,
+        "evals": 2
+      }
+    },
+    "validation": {
+      "ok": true,
+      "errors": []
+    },
+    "applied": true,
+    "outcome": "survived_effect_not_observed",
+    "digest_hash": "84438315cf66",
+    "applied_at_iter": 400,
+    "effect": {
+      "check": {
+        "metric": "Episode/len_mean",
+        "op": ">=",
+        "value": 20.0
+      },
+      "observed": 19.67,
+      "confirmed": false
+    }
+  },
+  {
+    "tick": 9,
+    "segment": "manager_s9",
+    "knobs_in": {
+      "termination_threshold.anchor_pos": 0.15,
+      "termination_threshold.ee_body_pos": 0.25,
+      "termination_threshold.foot_pos_xyz": 0.3
+    },
+    "rew_mean_last": 1.3883,
+    "len_mean_last": 20.7,
+    "config_verify": {
+      "status": "ok",
+      "checked": [
+        "uniform_sampling_rate",
+        "adp_samp_failure_rate_max_over_mean",
+        "bin_size",
+        "termination_threshold.anchor_pos",
+        "termination_threshold.ee_body_pos",
+        "termination_threshold.foot_pos_xyz",
+        "desired_kl",
+        "entropy_coef"
+      ],
+      "missing": [],
+      "adopted": {},
+      "drifts": {}
+    },
+    "eval_error": "GPU busy: training or eval already running in the container",
+    "heldout_error": "GPU busy: training or eval already running in the container",
+    "decision": {
+      "action": "none",
+      "reason": "pending decision on termination_threshold.ee_body_pos still under tripwire watch (one change at a time)"
+    }
+  },
+  {
+    "tick": 10,
+    "segment": "manager_s10",
+    "knobs_in": {
+      "termination_threshold.anchor_pos": 0.15,
+      "termination_threshold.ee_body_pos": 0.25,
+      "termination_threshold.foot_pos_xyz": 0.3
+    },
+    "rew_mean_last": 1.27765,
+    "len_mean_last": 19.67,
+    "config_verify": {
+      "status": "ok",
+      "checked": [
+        "uniform_sampling_rate",
+        "adp_samp_failure_rate_max_over_mean",
+        "bin_size",
+        "termination_threshold.anchor_pos",
+        "termination_threshold.ee_body_pos",
+        "termination_threshold.foot_pos_xyz",
+        "desired_kl",
+        "entropy_coef"
+      ],
+      "missing": [],
+      "adopted": {},
+      "drifts": {}
+    },
+    "eval_error": "GPU busy: training or eval already running in the container",
+    "heldout_error": "GPU busy: training or eval already running in the container",
+    "decision": {
+      "action": "none",
+      "reason": "len [20.7, 19.7] inside [20.0, 200.0] band or sustain unmet"
+    }
+  }
+]

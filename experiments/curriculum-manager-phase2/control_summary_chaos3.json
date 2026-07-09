@@ -1,0 +1,22 @@
+{
+  "arm": "control",
+  "segments": 1,
+  "decisions_applied": 0,
+  "rollbacks": 0,
+  "rejected": 0,
+  "final_knobs": {
+    "entropy_coef": 0.0100001
+  },
+  "rew_series": [
+    0.88411
+  ],
+  "len_series": [
+    12.91
+  ],
+  "eval_progress_series": [
+    0.09429683551570633
+  ],
+  "eval_mpjpe_series": [
+    58.289041437093246
+  ]
+}

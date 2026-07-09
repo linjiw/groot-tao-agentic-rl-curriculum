@@ -1,0 +1,125 @@
+[
+  {
+    "tick": 1,
+    "segment": "control_s1",
+    "knobs_in": {
+      "entropy_coef": 0.0100001
+    },
+    "rew_mean_last": 0.88411,
+    "len_mean_last": 12.91,
+    "config_verify": {
+      "status": "ok",
+      "checked": [
+        "uniform_sampling_rate",
+        "adp_samp_failure_rate_max_over_mean",
+        "bin_size",
+        "termination_threshold.anchor_pos",
+        "termination_threshold.ee_body_pos",
+        "termination_threshold.foot_pos_xyz",
+        "desired_kl",
+        "entropy_coef"
+      ],
+      "missing": [],
+      "adopted": {
+        "uniform_sampling_rate": 0.1,
+        "adp_samp_failure_rate_max_over_mean": 200,
+        "bin_size": 50,
+        "termination_threshold.anchor_pos": 0.15,
+        "termination_threshold.ee_body_pos": 0.15,
+        "termination_threshold.foot_pos_xyz": 0.2,
+        "desired_kl": 0.01
+      },
+      "drifts": {}
+    },
+    "eval": {
+      "success_rate": 0.0,
+      "progress_rate": 0.09429683551570633,
+      "mpjpe_all_mean": 58.289041437093246,
+      "mpjpe_l_all_mean": 43.86635617175734,
+      "mpjpe_pa_all_mean": 36.4647002228361,
+      "per_motion_progress": {
+        "dance_basic_slide_180_R_loop_002__A323": 0.0721442922949791,
+        "walk_big_dog_ff_315_loop_R_002__A494": 0.053892213851213455,
+        "injured_torso_jog_ff_start_225_R_003__A233_M": 0.2528301775455475,
+        "alone_R_003__A408_M": 0.12368421256542206,
+        "inj_right_leg_jump_ff_180_R_002__A074_M": 0.09848485141992569,
+        "painful_stand_on_walk_ff_360_R_001__A461": 0.04309392347931862,
+        "dance_hiphop_kick_it_R_fast_002__A319": 0.0923076942563057,
+        "jump_ff_270_R_001__A468_M": 0.2164948433637619,
+        "dance_vouge_picking_you_180_R_loop_fast_003__A323_M": 0.07068965584039688,
+        "crowd_cheer_004__A029_M": 0.07637231796979904,
+        "don_t_know_2_002__A050_M": 0.14438502490520477,
+        "jog_sideway_090_stop_001__A021_M": 0.08943089097738266,
+        "bravo_R_001__A431_M": 0.09772727638483047,
+        "reaching_down_R_002__A405_M": 0.05131964758038521,
+        "injured_leg_walk_ff_270_R_002__A545_M": 0.025784753262996674,
+        "operating_fridge_mid_in_R_002__A289_M": 0.08653846383094788,
+        "walk_the_dog_turn_000_R_002__A495": 0.09872611612081528,
+        "item_drop_R_003__A411": 0.0771208256483078,
+        "triumphant_delight_R_001__A429": 0.24858756363391876,
+        "take_a_sip_360_R_001__A551": 0.0634920671582222,
+        "walk_forward_loop_003__A044": 0.04907975345849991,
+        "injured_torso_walk_ff_stop_180_R_003__A216": 0.036363635212183,
+        "big_light_one_hand_behind_low_to_behind_low_R_001__A520_M": 0.13684210181236267,
+        "sneeze_R_001__A414": 0.11023622006177902,
+        "jump_ff_360_R_002__A528": 0.1435643583536148,
+        "inj_torso_jump_ff_180_R_001__A081_M": 0.08837209641933441,
+        "jog_ff_stop_360_R_normal_pace_001__A454_M": 0.03614457696676254,
+        "crawl_ff_loop_180_R_003__A129_M": 0.03883495181798935,
+        "walk_ff_stop_180_R_002__A066": 0.17142857611179352,
+        "jog_ff_loop_270_001__A095": 0.069182388484478,
+        "step_in_shit_R_002__A409": 0.07709251344203949,
+        "maybe_003__A236": 0.26605504751205444,
+        "jog_ff_stop_180_R_003__A341_M": 0.0416666679084301,
+        "jog_sideway_045_loop_003__A038_M": 0.10033445060253143,
+        "medium_heavy_two_hands_behind_low_to_behind_low_R_001__A522_M": 0.09638553857803345,
+        "walk_big_dog_ff_180_start_R_002__A493_M": 0.03971119225025177,
+        "injured_torso_jog_ff_stop_270_R_001__A218": 0.019999999552965164,
+        "small_heavy_one_hand_walk_ff_stop_360_R_001__A506_M": 0.03076923079788685,
+        "avoid_obstacle_right_run_ff_180_R_004__A500": 0.05154639109969139,
+        "maybe_002__A236_M": 0.2868216931819916,
+        "dancing_routine_V002_003__A320": 0.038343559950590134,
+        "walk_arc_cw_start_R_003__A255": 0.08074533939361572,
+        "jog_ff_stop_180_R_003__A177_M": 0.048327136784791946,
+        "on_all_fours_forward_loop_R_001__A202": 0.010714286006987095,
+        "turn_start_walk_045_001__A043": 0.1184210553765297,
+        "big_light_two_hands_walk_ff_stop_360_R_001__A511": 0.03333333507180214,
+        "walk_arc_cw_stop_R_003__A214_M": 0.04109589010477066,
+        "postmortem_convulsions_stomach_loop_R_001__A471_M": 0.057851240038871765,
+        "high_small_valve_ccw_001__A482": 0.044247787445783615,
+        "crawl_ff_stop_225_005__A132": 0.005836575757712126,
+        "kneeling_start_003__A023": 0.2068965584039688,
+        "crowd_cheer_002__A050_M": 0.042288556694984436,
+        "small_heavy_two_hands_right_side_medium_to_behind_medium_R_001__A521": 0.16153846681118011,
+        "praying_001__A409_M": 0.069212406873703,
+        "triumph_two_handed_003__A047_M": 0.05275779217481613,
+        "turn_start_walk_045_001__A035_M": 0.08759123831987381,
+        "walk_sideway_045_loop_005__A033": 0.05314009636640549,
+        "crouch_ff_loop_225_R_002__A244_M": 0.054054055362939835,
+        "injured_torso_turn_jog_360_R_001__A231_M": 0.11337209492921829,
+        "clap_forced_001__A050_M": 0.0767441838979721,
+        "walk_the_dog_turn_000_R_002__A493": 0.05678233504295349,
+        "dancing_routine_V002_002__A151": 0.053973011672496796,
+        "jog_ff_start_180_R_003__A377_M": 0.1421319842338562,
+        "medium_heavy_one_hand_front_medium_to_front_medium_R_001__A520": 0.41206029057502747
+      }
+    },
+    "heldout": {
+      "heldout_success_rate": 0.0,
+      "heldout_failed_count": 64,
+      "heldout_mpjpe_g": 50.929265245710106
+    },
+    "checkpoint_purge": {
+      "run_dir": "/workspace/wbc-training-logs/cmp_control_seed42_chaos3/control_s1-20260708_195548",
+      "deleted": [
+        "last.pt",
+        "model_step_000050.pt"
+      ],
+      "bytes_freed": 2364233648
+    },
+    "decision": {
+      "action": "none",
+      "reason": "control arm"
+    }
+  }
+]

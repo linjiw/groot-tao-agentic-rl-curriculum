@@ -1,0 +1,6 @@
+=== multiseed v4: seeds=[42 1337] arms=[scripted] segs=10 iters=50 envs=256 eval_envs=64 dry_run=0 ===
+=== 21:31:03 seed=42 arm=scripted start ===
+=== 23:28:46 seed=42 arm=scripted done rc=0 ===
+=== 23:28:46 seed=1337 arm=scripted start ===
+=== 01:28:12 seed=1337 arm=scripted done rc=0 ===
+=== multiseed v4 complete 01:28:12 ===

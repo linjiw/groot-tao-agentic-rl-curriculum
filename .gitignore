@@ -10,6 +10,9 @@ experiments/**/out/*.bin
 experiments/**/out/*.pt
 *.safetensors
 
+# Assistant orchestration scratch (Hermes execution plans — not a project deliverable)
+.hermes/
+
 # Python / pytest cruft
 __pycache__/
 *.pyc
