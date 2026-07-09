@@ -103,6 +103,31 @@ class SigmaEMAController:
         """Current tracking reward r(x) = exp(-x/sigma) (does NOT update)."""
         return math.exp(-tracking_error / self.sigma)
 
+    # -- tier-2 meta-knob setters (registry-mediated) ------------------
+    def set_ema_rate(self, value: float) -> float:
+        """Meta-knob: EMA smoothing rate. Must stay in (0, 1]."""
+        v = float(value)
+        if not (0 < v <= 1) or not math.isfinite(v):
+            raise ValueError(f"ema_rate must be in (0, 1], got {value}")
+        self.ema_rate = v
+        return v
+
+    def set_sigma_floor(self, value: float) -> float:
+        """Meta-knob: hard lower bound on sigma.
+
+        Raising the floor ABOVE the current sigma would force sigma UP,
+        violating the monotone-non-increasing invariant (the PBHC rule's
+        core property) — so the applied value is clamped to
+        min(requested, current sigma). Returns the value actually
+        applied; the caller journals requested vs applied.
+        """
+        v = float(value)
+        if not math.isfinite(v) or v < 0:
+            raise ValueError(f"sigma_floor must be finite and >= 0, got {value}")
+        applied = min(v, self.sigma)
+        self.sigma_floor = applied
+        return applied
+
     def state_dict(self) -> Dict[str, float]:
         return {"sigma": self.sigma,
                 "ema": float("nan") if self._ema is None else self._ema,
@@ -185,6 +210,14 @@ class BinLPSampler:
         applied = min(1.0, max(float(value), self.uniform_floor))
         self.uniform_mix = applied
         return applied
+
+    def set_power(self, value: float) -> float:
+        """Meta-knob: LP smoothing exponent. Must stay > 0 and finite."""
+        v = float(value)
+        if not math.isfinite(v) or v <= 0:
+            raise ValueError(f"power must be finite and > 0, got {value}")
+        self.power = v
+        return v
 
     # -- read path -----------------------------------------------------
     def learning_progress(self, bin_key: Hashable) -> float:
