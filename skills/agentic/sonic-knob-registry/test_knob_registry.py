@@ -3,7 +3,7 @@
 
 import pytest
 
-from knob_registry import KnobRegistry, RunState, load_registry
+from knob_registry import ConfigDriftError, KnobRegistry, RunState, load_registry
 
 
 @pytest.fixture()
@@ -161,6 +161,78 @@ def test_restart_required_warns(reg, state):
     assert res.ok and any("restart" in w for w in res.warnings)
 
 
+# ── registry-level pending gate (doc 08 §11 amendment 2) ─────────────
+def test_pending_gate_rejects_any_set(reg, state):
+    state.arm_pending("uniform_sampling_rate")
+    # even a perfectly-formed change to a DIFFERENT knob is rejected
+    res = reg.validate_decision(decision("desired_kl", 0.012), state)
+    assert not res and any("pending change" in e and "uniform_sampling_rate" in e
+                           for e in res.errors)
+
+
+def test_pending_gate_allows_none(reg, state):
+    state.arm_pending("uniform_sampling_rate")
+    assert reg.validate_decision({"action": "none"}, state)
+
+
+def test_pending_gate_clears(reg, state):
+    state.arm_pending("uniform_sampling_rate")
+    state.clear_pending()
+    assert state.pending is None
+    assert reg.validate_decision(decision("desired_kl", 0.012), state)
+
+
+def test_pending_gate_same_knob_also_rejected(reg, state):
+    state.arm_pending("desired_kl")
+    res = reg.validate_decision(decision("desired_kl", 0.012), state)
+    assert not res
+
+
+def test_legacy_state_without_pending_still_validates(reg):
+    """Defense in depth must not break callers holding an old-shaped state."""
+    class LegacyState:
+        tick = 10
+        current_values = {}
+        last_changed_tick = {}
+    assert reg.validate_decision(decision("desired_kl", 0.012), LegacyState())
+
+
+# ── hard rule 4: Family-B needs a held-out metric (digest-supplied) ──
+def _digest_with_heldout(last, trend):
+    return {"eval": {"heldout_success_rate": {"last": last, "trend": trend}}}
+
+
+def test_family_b_rejected_without_heldout(reg, state):
+    state.current_values["termination_threshold.anchor_pos"] = 0.30
+    d = decision("termination_threshold.anchor_pos", 0.25)
+    # digest with no eval section at all
+    res = reg.validate_decision(d, state, digest={"eval": None})
+    assert not res and any("hard rule 4" in e for e in res.errors)
+    # held-out present but null / unknown trend
+    for bad in (_digest_with_heldout(None, "flat"),
+                _digest_with_heldout(0.6, "unknown")):
+        assert not reg.validate_decision(d, state, digest=bad)
+
+
+def test_family_b_allowed_with_heldout(reg, state):
+    state.current_values["termination_threshold.anchor_pos"] = 0.30
+    d = decision("termination_threshold.anchor_pos", 0.25)
+    assert reg.validate_decision(d, state, digest=_digest_with_heldout(0.42, "flat"))
+
+
+def test_non_family_b_unaffected_by_missing_heldout(reg, state):
+    # Family-A knob: hard rule 4 machine-check does not apply
+    d = decision("uniform_sampling_rate", 0.15)
+    assert reg.validate_decision(d, state, digest={"eval": None})
+
+
+def test_no_digest_skips_heldout_check(reg, state):
+    """Callers without a held-out stream (Phase-2 smoke) omit the digest;
+    the gate stays behavioral there (scope-noted), not machine-enforced."""
+    state.current_values["termination_threshold.anchor_pos"] = 0.30
+    assert reg.validate_decision(decision("termination_threshold.anchor_pos", 0.25), state)
+
+
 # ── malformed registry specs rejected ─────────────────────────────────
 def test_bad_specs_rejected():
     base = {"family": "optimizer", "type": "float", "hard_range": [0, 1],
@@ -174,3 +246,89 @@ def test_bad_specs_rejected():
         KnobRegistry({"knobs": {"k": {**base, "type": "choice", "choices": [1]}}})
     with pytest.raises(ValueError):
         KnobRegistry({"knobs": {"k": {**base, "max_step": {"kind": "multiplicative", "factor": 0.5}}}})
+
+
+# ── verify against a run's resolved config.yaml (doc 08 §11 amendment 8) ─
+_PATHS = {
+    "termination_threshold.foot_pos_xyz":
+        "manager_env.terminations.foot_pos_xyz.params.threshold",
+    "uniform_sampling_rate":
+        "manager_env.commands.motion.motion_lib_cfg.adaptive_sampling.uniform_sampling_rate",
+}
+
+
+def _fake_cfg(foot=0.2, uniform=0.1):
+    return {"manager_env": {
+        "terminations": {"foot_pos_xyz": {"params": {"threshold": foot}}},
+        "commands": {"motion": {"motion_lib_cfg": {
+            "adaptive_sampling": {"uniform_sampling_rate": uniform}}}}}}
+
+
+def test_verify_matching_beliefs_pass(reg, state):
+    state.current_values["termination_threshold.foot_pos_xyz"] = 0.2
+    state.current_values["uniform_sampling_rate"] = 0.1
+    res = reg.verify_against_config(state, _fake_cfg(), _PATHS)
+    assert res and res.ok and not res.drifts and not res.missing
+    assert set(res.checked) == set(_PATHS)
+    res.raise_on_drift()  # no-op when ok
+
+
+def test_verify_divergence_flags_and_raises(reg, state):
+    # THE v2 defect shape: registry default (0.35) believed, but the run's
+    # resolved config actually has the stock strict value (0.2)
+    state.current_values["termination_threshold.foot_pos_xyz"] = 0.35
+    res = reg.verify_against_config(state, _fake_cfg(foot=0.2), _PATHS)
+    assert not res
+    drift = res.drifts["termination_threshold.foot_pos_xyz"]
+    assert drift == {"believed": 0.35, "resolved": 0.2}
+    with pytest.raises(ConfigDriftError, match="amendment 8"):
+        res.raise_on_drift()
+    # the wrong belief is NOT silently rewritten — the caller must refuse
+    assert state.current_values["termination_threshold.foot_pos_xyz"] == 0.35
+
+
+def test_verify_adopts_unseeded_beliefs_from_ground_truth(reg, state):
+    # no beliefs yet: values are seeded from the config, never from the
+    # registry.yaml defaults (the structural fix for the seeding defect)
+    res = reg.verify_against_config(state, _fake_cfg(foot=0.2), _PATHS)
+    assert res.ok
+    assert res.adopted["termination_threshold.foot_pos_xyz"] == 0.2
+    assert state.current_values["termination_threshold.foot_pos_xyz"] == 0.2
+    assert reg.current_of("termination_threshold.foot_pos_xyz", state) == 0.2
+
+
+def test_verify_no_adopt_compares_registry_default(reg, state):
+    # adopt_unseeded=False: the registry default (0.35) is what current_of()
+    # would answer, so default-vs-config drift must surface, not hide
+    res = reg.verify_against_config(state, _fake_cfg(foot=0.2), _PATHS,
+                                    adopt_unseeded=False)
+    assert not res
+    assert res.drifts["termination_threshold.foot_pos_xyz"]["believed"] == 0.35
+    assert "termination_threshold.foot_pos_xyz" not in state.current_values
+
+
+def test_verify_missing_path_flagged_not_fatal(reg, state):
+    state.current_values["termination_threshold.foot_pos_xyz"] = 0.2
+    cfg = _fake_cfg()
+    del cfg["manager_env"]["commands"]  # uniform_sampling_rate path gone
+    res = reg.verify_against_config(state, cfg, _PATHS)
+    assert res.ok  # missing is a wiring gap, not drift
+    assert res.missing == ["uniform_sampling_rate"]
+    res.raise_on_drift()
+
+
+def test_verify_numeric_types_compare_as_numbers(reg, state):
+    # yaml often deserializes 50 as int while the belief is 50.0
+    state.current_values["uniform_sampling_rate"] = 0.1
+    cfg = _fake_cfg(uniform=0.1)
+    state.current_values["termination_threshold.foot_pos_xyz"] = 0.2
+    res = reg.verify_against_config(state, cfg, _PATHS)
+    assert res.ok
+
+
+def test_verify_ignores_paths_for_unknown_knobs(reg, state):
+    paths = dict(_PATHS, not_a_knob="some.random.path")
+    state.current_values["termination_threshold.foot_pos_xyz"] = 0.2
+    state.current_values["uniform_sampling_rate"] = 0.1
+    res = reg.verify_against_config(state, _fake_cfg(), paths)
+    assert res.ok and "not_a_knob" not in res.checked

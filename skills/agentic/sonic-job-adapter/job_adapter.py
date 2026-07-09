@@ -61,6 +61,11 @@ KNOB_TO_HYDRA = {
     "entropy_coef": "++algo.config.entropy_coef",
 }
 
+# Same knobs as dotted paths INTO a saved/resolved config.yaml (the Hydra
+# override paths minus the '+'/'++' append markers) — what
+# KnobRegistry.verify_against_config walks (doc 08 §11 amendment 8).
+KNOB_TO_CONFIG_PATH = {name: path.lstrip("+") for name, path in KNOB_TO_HYDRA.items()}
+
 
 # ── command building (pure) ──────────────────────────────────────────
 def build_overrides(knobs: Dict[str, Any]) -> List[str]:
@@ -91,12 +96,21 @@ def build_train_command(
     save_last_frequency: int = 10,
     log_path: Optional[str] = None,
     seed: int = 42,
+    extra_overrides: Optional[List[str]] = None,
 ) -> List[str]:
     """The docker-exec launch, exactly as verified in infra-guide.md.
 
     `seed` is pinned explicitly: arm-comparison experiments depend on
     identical-prefix segments, which must not rest on an unpinned config
     default (review finding 7).
+
+    `extra_overrides`: verbatim Hydra overrides appended AFTER the knob
+    overrides — the held-out wiring uses this to point training at the
+    curriculum-only motion directory
+    (`++...motion_lib_cfg.motion_file=data/motion_lib_bones_seed/robot_curriculum`)
+    so the held-out split never enters the training set (hard rule 4).
+    NOT part of the manager's action space; the manager only reaches
+    KNOB_TO_HYDRA.
     """
     parts = [
         f"cd {WBC_DIR} &&",
@@ -117,6 +131,7 @@ def build_train_command(
     if checkpoint:
         parts.insert(parts.index(f"base_dir={BASE_DIR}") + 1, f"checkpoint={checkpoint}")
     parts.extend(build_overrides(knobs or {}))
+    parts.extend(extra_overrides or [])
     if log_path:
         parts.append(f"> {log_path} 2>&1 &")
     inner = " ".join(p for p in parts if p)
@@ -128,6 +143,7 @@ def build_eval_command(
     out_dir: str,
     num_envs: int = 64,
     log_path: Optional[str] = None,
+    extra_overrides: Optional[List[str]] = None,
 ) -> List[str]:
     """The eval-only im_eval invocation (verified live 2026-07-02;
     ~1-2 min/checkpoint at 64 envs on the A10G; deterministic — the same
@@ -163,6 +179,7 @@ def build_eval_command(
         "++manager_env.terminations.foot_pos_xyz.params.threshold=0.2",
         "++manager_env.commands.motion.motion_lib_cfg.multi_thread=False",
     ]
+    parts.extend(extra_overrides or [])
     if log_path:
         parts.append(f"> {log_path} 2>&1 &")
     inner = " ".join(p for p in parts if p)
@@ -393,6 +410,21 @@ def read_metrics_eval(out_dir: str) -> Dict[str, Any]:
     return json.loads(_dexec(f"cat {shlex.quote(out_dir)}/metrics_eval.json", timeout=60))
 
 
+def read_resolved_config(experiment_dir: str) -> Optional[str]:
+    """Raw text of the run's RESOLVED config.yaml — the checkpoint-sibling
+    file train_agent_trl.py saves with every override already applied (the
+    same file eval_agent_trl.py merges from, see build_eval_command). This
+    is the ground truth the registry's beliefs are verified against (doc 08
+    §11 amendment 8). Returns None when absent (e.g. a segment that died
+    before Hydra wrote it) — the caller decides how loudly to flag that.
+    Returned unparsed: this module is stdlib-only; the registry side owns
+    the YAML dependency."""
+    out = _dexec(
+        f"cat {shlex.quote(experiment_dir)}/config.yaml 2>/dev/null || true",
+        timeout=60)
+    return out or None
+
+
 # ── the segment lifecycle ────────────────────────────────────────────
 @dataclasses.dataclass
 class Segment:
@@ -413,12 +445,15 @@ class JobAdapter:
 
     def __init__(self, project: str = "manager", num_envs: int = 256,
                  steps_per_env: int = 16, save_last_frequency: int = 10,
-                 seed: int = 42):
+                 seed: int = 42,
+                 extra_overrides: Optional[List[str]] = None):
         self.project = project
         self.num_envs = num_envs
         self.steps_per_env = steps_per_env
         self.save_last_frequency = save_last_frequency
         self.seed = seed
+        # applied to every training launch (NOT eval); see build_train_command
+        self.extra_overrides = list(extra_overrides or [])
         self.segments: List[Segment] = []
 
     def launch_segment(self, name: str, iterations: int,
@@ -435,6 +470,7 @@ class JobAdapter:
             project_name=self.project, steps_per_env=self.steps_per_env,
             save_last_frequency=self.save_last_frequency,
             log_path=seg.log_path, seed=self.seed,
+            extra_overrides=self.extra_overrides,
         )
         subprocess.run(cmd, check=True, capture_output=True, text=True, timeout=60)
         seg.status = "running"
@@ -462,9 +498,21 @@ class JobAdapter:
     def parse_segment(self, seg: Segment) -> ParsedLog:
         return parse_console_log(read_container_log(seg.log_path))
 
+    def resolved_config_text(self, seg: Segment) -> Optional[str]:
+        """Raw text of `seg`'s resolved config.yaml, or None when the
+        segment has no experiment dir yet / the file was never written.
+        The driver parses it and hands it to the registry's
+        verify_against_config (doc 08 §11 amendment 8)."""
+        if not seg.experiment_dir:
+            return None
+        return read_resolved_config(seg.experiment_dir)
+
     def eval_segment(self, seg: Segment, it: int,
                      num_envs: int = 64,
-                     poll_s: int = 10, timeout_s: int = 900) -> Dict[str, Any]:
+                     poll_s: int = 10, timeout_s: int = 900,
+                     extra_overrides: Optional[List[str]] = None,
+                     out_suffix: str = "_eval",
+                     raw: bool = False) -> Dict[str, Any]:
         """Run an eval-only im_eval pass on `seg`'s snapshot and return one
         digest eval-stream record (parse_metrics_eval).
 
@@ -473,16 +521,23 @@ class JobAdapter:
         segment). Blocks until the eval subprocess exits; raises if the
         segment has no snapshot, the GPU is busy, or metrics_eval.json
         never appears (an eval that dies mid-boot leaves no output file).
+
+        `extra_overrides` + `out_suffix` + `raw`: the held-out watcher pass
+        re-uses this plumbing with a motion_file override pointing at the
+        held-out subset directory and raw=True so the caller can hand the
+        unparsed metrics_eval dict to holdout.heldout_record_from_metrics_eval
+        (which enforces the failed_keys ⊆ manifest integrity guard).
         """
         ckpt = seg.snapshot or (seg.experiment_dir and latest_checkpoint(seg.experiment_dir))
         if not ckpt:
             raise RuntimeError(f"segment {seg.name} has no checkpoint to evaluate")
         if is_training_running() or is_eval_running():
             raise RuntimeError("GPU busy: training or eval already running in the container")
-        out_dir = f"{BASE_DIR}/{self.project}_{seg.name}_eval"
+        out_dir = f"{BASE_DIR}/{self.project}_{seg.name}{out_suffix}"
         log_path = f"{out_dir}.log"
         _dexec(f"rm -rf {shlex.quote(out_dir)} && mkdir -p {shlex.quote(out_dir)}")
-        cmd = build_eval_command(ckpt, out_dir, num_envs=num_envs, log_path=log_path)
+        cmd = build_eval_command(ckpt, out_dir, num_envs=num_envs, log_path=log_path,
+                                 extra_overrides=extra_overrides)
         subprocess.run(cmd, check=True, capture_output=True, text=True, timeout=60)
         # startup grace: the nohup'd process needs a moment to appear in pgrep,
         # else the first poll sees "not running" and exits before eval starts
@@ -500,6 +555,8 @@ class JobAdapter:
             raise RuntimeError(
                 f"eval for segment {seg.name} produced no metrics_eval.json "
                 f"(see {log_path}): {e}") from e
+        if raw:
+            return metrics
         return parse_metrics_eval(metrics, it=it)
 
     def rollback_launch(self, failed: Segment, name: str,

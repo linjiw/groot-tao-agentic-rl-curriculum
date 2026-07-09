@@ -273,3 +273,19 @@ def test_rollback_uses_prechange_state(monkeypatch):
     rb = ad.rollback_launch(s2, "seg2_rollback", 20)
     assert rb.checkpoint_in == s1.snapshot          # pre-change checkpoint
     assert rb.knobs == {"uniform_sampling_rate": 0.1}  # pre-change knobs
+
+
+# ── knob → resolved-config path table (doc 08 §11 amendment 8) ───────
+def test_config_paths_mirror_hydra_without_append_markers():
+    from job_adapter import KNOB_TO_CONFIG_PATH
+    assert set(KNOB_TO_CONFIG_PATH) == set(KNOB_TO_HYDRA)
+    for name, path in KNOB_TO_CONFIG_PATH.items():
+        assert not path.startswith("+")
+        assert KNOB_TO_HYDRA[name].lstrip("+") == path
+
+
+def test_resolved_config_text_requires_experiment_dir():
+    # a segment without an experiment dir has no config.yaml seam yet —
+    # returns None (no docker call) instead of guessing a path
+    seg = Segment(name="s1", iterations=5, knobs={})
+    assert JobAdapter().resolved_config_text(seg) is None
