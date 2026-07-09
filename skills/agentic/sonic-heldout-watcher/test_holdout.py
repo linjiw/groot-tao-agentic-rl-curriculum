@@ -121,6 +121,52 @@ def test_record_refuses_empty_and_out_of_range(manifest):
         )
 
 
+def test_record_surfaces_resolving_progress_metric(manifest):
+    """doc 10 I2.1: success_rate is 0.0-everywhere at scale; the per-motion
+    PROGRESS aggregate + spread is the RESOLVING held-out metric. It must be
+    surfaced from eval/all_metrics_dict.progress + eval/success/progress_rate."""
+    hk = manifest["heldout_keys"]
+    prog = [0.0, 0.1, 0.32, 0.05, 0.0]          # continuous, non-degenerate
+    metrics = {
+        "eval/success/success_rate": 0.0,        # the useless metric
+        "eval/success/progress_rate": 0.094,     # the resolving scalar
+        "eval/all_metrics_dict": {
+            "motion_keys": hk[:5],
+            "progress": prog,
+        },
+    }
+    rec = heldout_record_from_metrics_eval(metrics, manifest, it=100)
+    assert rec["heldout_success_rate"] == 0.0
+    assert rec["heldout_progress_rate"] == 0.094
+    pm = rec["heldout_progress_per_motion"]
+    assert pm["n"] == 5
+    assert pm["max"] == 0.32
+    assert pm["nonzero"] == 3
+    assert pm["mean"] == pytest.approx(sum(prog) / 5, abs=1e-6)
+
+
+def test_record_refuses_foreign_per_motion_keys(manifest):
+    """Per-motion progress keyed outside the held-out subset must refuse,
+    same integrity guard as failed_keys — a wrong motion set can't feed a
+    wrong resolving metric either."""
+    with pytest.raises(ValueError, match="outside the subset"):
+        heldout_record_from_metrics_eval(
+            {"eval/success/success_rate": 0.0,
+             "eval/all_metrics_dict": {
+                 "motion_keys": ["not_a_heldout_motion", "also_foreign"],
+                 "progress": [0.1, 0.2]}},
+            manifest, it=1)
+
+
+def test_record_progress_metric_optional(manifest):
+    """When no per-motion progress is present, the record still emits (the
+    metric is additive, not required) — back-compat with old eval files."""
+    rec = heldout_record_from_metrics_eval(
+        {"eval/success/success_rate": 0.5}, manifest, it=1)
+    assert "heldout_progress_per_motion" not in rec
+    assert "heldout_progress_rate" not in rec
+
+
 def test_record_feeds_digest_builder(manifest, tmp_path):
     """End-to-end: watcher record → digest builder sees the protected metric."""
     import importlib.util, os, sys

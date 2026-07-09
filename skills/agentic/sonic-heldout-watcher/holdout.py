@@ -38,6 +38,7 @@ from __future__ import annotations
 
 import hashlib
 import json
+import math
 from typing import Any, Dict, Iterable, List, Optional
 
 MANIFEST_VERSION = "0.1.0"
@@ -174,6 +175,45 @@ def heldout_record_from_metrics_eval(
     mpjpe = metrics_eval.get("eval/all/mpjpe_g")
     if isinstance(mpjpe, (int, float)):
         record["heldout_mpjpe_g"] = float(mpjpe)
+
+    # RESOLVING held-out metric (doc 10 §2 gap "held-out metric with
+    # resolution" / I2.1). success_rate is all-or-nothing full-clip
+    # completion -> 0.0 everywhere at this scale (E3A [verified]); the
+    # per-motion PROGRESS (fraction of clip completed before termination) is
+    # continuous in [0,1] and already persisted at 0 GPU-h in
+    # eval/all_metrics_dict.progress. We surface the aggregate progress_rate
+    # AND a per-motion spread so the metric can actually distinguish arms.
+    progress_rate = metrics_eval.get("eval/success/progress_rate")
+    if progress_rate is None:
+        progress_rate = metrics_eval.get("progress_rate")
+    if isinstance(progress_rate, (int, float)) and math.isfinite(progress_rate):
+        record["heldout_progress_rate"] = round(float(progress_rate), 6)
+    amd = metrics_eval.get("eval/all_metrics_dict") or {}
+    prog = amd.get("progress")
+    keys = amd.get("motion_keys")
+    if isinstance(prog, list) and prog:
+        vals = [float(p) for p in prog
+                if isinstance(p, (int, float)) and math.isfinite(p)]
+        if vals:
+            # integrity: per-motion arrays must be keyed inside the held-out
+            # subset too (strict) — a wrong motion set here would poison the
+            # resolving metric just like a wrong success_rate.
+            if strict and isinstance(keys, list) and keys:
+                outside = sorted(set(keys) - set(manifest["heldout_keys"]))
+                if outside:
+                    raise ValueError(
+                        f"held-out per-motion progress ran outside the subset "
+                        f"({len(outside)} foreign keys, e.g. {outside[:3]}); "
+                        "refusing to emit the resolving metric")
+            n = len(vals)
+            mean = sum(vals) / n
+            record["heldout_progress_per_motion"] = {
+                "mean": round(mean, 6),
+                "min": round(min(vals), 6),
+                "max": round(max(vals), 6),
+                "nonzero": sum(1 for v in vals if v > 0),
+                "n": n,
+            }
     return record
 
 
