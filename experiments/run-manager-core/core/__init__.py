@@ -56,6 +56,10 @@ from .tripwire import (  # noqa: F401
     score_effect,
     tripwire_value,
 )
+from .controllers import (  # noqa: F401
+    BinLPSampler,
+    SigmaEMAController,
+)
 from .loop import (  # noqa: F401
     DiskSpaceError,
     LoopConfig,
@@ -81,6 +85,7 @@ __all__ = [
     "JournalGateReport", "DEFAULT_GATED_FIELDS",
     "EVAL_ABS_MIN_DROP", "TripwireVerdict", "TripwireWatch",
     "effect_value", "score_effect", "tripwire_value",
+    "BinLPSampler", "SigmaEMAController",
     "DiskSpaceError", "LoopConfig", "RunManager", "control_config",
     "digest_hash", "scripted_config",
 ]
