@@ -1,4 +1,5 @@
 # SPDX-License-Identifier: Apache-2.0
+# Copyright (c) 2026, NVIDIA CORPORATION. All rights reserved.
 """Manager ON-vs-OFF driver v3: per-segment eval passes + eval-side tripwire
 (design doc 08 §8 Phase 2; v2 review residuals 4–6 partially retired).
 
@@ -10,6 +11,33 @@ Loop per segment (manager arm):
 
 Control arm: identical segments incl. the eval pass (its eval curve is the
 comparison anchor), no knob changes ever.
+
+Phase B5 (2026-07-08): SmokeDriver is now a THIN SHELL over the
+engine-agnostic run-manager core (experiments/run-manager-core). The
+20-step per-segment state machine that used to live in SmokeDriver.run()
+(tripwire judgment, pending gate, rollback branch, effect scoring, journal
+assembly) is executed by core.loop.RunManager — byte-equivalence of
+journal + summary verified against the pre-B5 driver on the four B3/B4
+scenarios (normal apply / rollback / control inertness / eval-failure
+watch hold). Everything SONIC-specific stays HERE and is injected through
+the B3 seams:
+
+- default JobAdapter construction + training-launch curriculum pin
+  (adapter argument / constructor),
+- knob_registry.load_registry() action space + RunState (registry/state
+  arguments),
+- job_adapter.KNOB_TO_CONFIG_PATH (LoopConfig.knob_config_paths),
+- Hydra motion_file override strings (LoopConfig.eval_extra_overrides and
+  the held-out pass as LoopConfig.heldout_hook),
+- checkpoint purge incl. the docker-exec root-owned-file fallback
+  (LoopConfig.purge_fn = purge_intermediate_checkpoints below),
+- BASE_DIR disk-gate auto-arming (resolved here, passed as the explicit
+  LoopConfig.disk_gate_path),
+- SONIC trainer scalar keys (LoopConfig.train_scalar_keys =
+  digest_builder.TRAIN_SCALAR_KEYS),
+- arm strings mapped to LoopConfig flags (observe_enabled /
+  propose_enabled / gate_on_pending / retire_open_watch_on_set); the arm
+  STRING survives only for segment naming and journal text.
 
 v3 changes over v2 (SMOKE_RESULTS.md "Next" items 2, 5, 6):
 - **Per-segment eval pass** (`JobAdapter.eval_segment`): after every segment
@@ -35,7 +63,16 @@ v3 changes over v2 (SMOKE_RESULTS.md "Next" items 2, 5, 6):
 - **Journal provenance** (v2 residual 6, partial): applied decisions carry
   `digest_hash` (sha256 of the digest they were made from) and
   `applied_at_iter` (cumulative training iteration). `expected_effect`
-  scoring is still NOT implemented — outcome remains `survived`.
+  scoring: when a decision carries a machine-readable
+  `expected_effect_check` ({metric, op, value}), a change that survives its
+  tripwire watch is scored `survived_effect_confirmed` /
+  `survived_effect_not_observed` against metrics the driver already records
+  (train stream or this segment's eval record); without a check the outcome
+  stays plain `survived`. Rolled-back changes stay `failed_rolled_back`.
+- **Registry-level pending gate** (doc 08 §11 amendment 2, defense in
+  depth): on apply the driver arms `state.pending`, so
+  `validate_decision` itself rejects any further `set` until the change is
+  scored or rolled back — in addition to the loop's own gate.
 
 **Honest scope (bones-seed still gated, 2-motion library):**
 - 2 motions make sampler-health decisions near-meaningless; curriculum-VALUE
@@ -54,15 +91,23 @@ tripwire guard is eval-side when available.
 from __future__ import annotations
 
 import dataclasses
-import hashlib
 import importlib.util
 import json
 import os
+import shutil  # noqa: F401 — kept as the disk-gate monkeypatch seam
 import sys
 from typing import Any, Dict, List, Optional
 
 _HERE = os.path.dirname(os.path.abspath(__file__))
 _REPO = os.path.abspath(os.path.join(_HERE, "..", ".."))
+# run-manager core (Phase B3-B5): relative sys.path insertion — no package
+# install, no .pth files
+_CORE = os.path.join(_REPO, "experiments", "run-manager-core")
+if _CORE not in sys.path:
+    sys.path.insert(0, _CORE)
+
+from core.loop import (DiskSpaceError, LoopConfig,  # noqa: E402
+                       RunManager, digest_hash)
 
 
 def _load(name: str, rel: str):
@@ -76,12 +121,51 @@ def _load(name: str, rel: str):
 knob_registry = _load("knob_registry", "skills/agentic/sonic-knob-registry/knob_registry.py")
 digest_builder = _load("digest_builder", "skills/agentic/sonic-run-digest/digest_builder.py")
 job_adapter = _load("job_adapter", "skills/agentic/sonic-job-adapter/job_adapter.py")
+holdout = _load("holdout", "skills/agentic/sonic-heldout-watcher/holdout.py")
 
 
-def digest_hash(digest: Dict[str, Any]) -> str:
-    """Stable short hash of a digest (journal provenance, doc 08 §3 step 4)."""
-    canon = json.dumps(digest, sort_keys=True, default=str)
-    return hashlib.sha256(canon.encode()).hexdigest()[:12]
+# ── E0: disk hygiene (SONIC-side purge adapter) ──────────────────────
+# files safe to delete once the segment's rollback snapshot exists:
+# last.pt is superseded by snapshot_<segment>.pt (every later consumer —
+# resume, eval, rollback — reads seg.snapshot, never last.pt), and
+# model_step_*.pt intermediates are never read by the driver at all.
+CHECKPOINT_PURGE_PATTERNS = ("last.pt", "model_step_*.pt")
+# container that owns root-owned checkpoint files (fallback deleter):
+PURGE_CONTAINER = "isaac-lab-base"
+
+
+def purge_intermediate_checkpoints(run_dir: str) -> tuple:
+    """Delete intermediate checkpoints from a VERIFIED segment's run dir.
+
+    Deletes plain files matching CHECKPOINT_PURGE_PATTERNS directly inside
+    `run_dir`; keeps snapshot_*.pt (the rollback/resume points) and every
+    subdirectory (eval output dirs). Returns (deleted_names, bytes_freed).
+    """
+    import glob as _glob
+    deleted: List[str] = []
+    freed = 0
+    for pattern in CHECKPOINT_PURGE_PATTERNS:
+        for path in sorted(_glob.glob(os.path.join(run_dir, pattern))):
+            if not os.path.isfile(path):
+                continue  # never touch directories (eval outputs)
+            size = os.path.getsize(path)
+            try:
+                os.remove(path)
+            except PermissionError:
+                # Training runs inside the container as root, so checkpoints
+                # are root-owned (rw------- root) in a root-owned dir; the
+                # host-side driver (ec2-user) cannot unlink them. Fall back
+                # to deleting through the container (same mount path).
+                import subprocess as _sp
+                _sp.run(["docker", "exec", PURGE_CONTAINER,
+                         "rm", "-f", path], check=True, timeout=60)
+                if os.path.exists(path):
+                    raise RuntimeError(
+                        f"docker-exec rm reported success but {path} "
+                        f"still exists")
+            freed += size
+            deleted.append(os.path.basename(path))
+    return deleted, freed
 
 
 @dataclasses.dataclass
@@ -172,6 +256,10 @@ class TrainSideBandPolicy:
                               f"binding termination axis (windowed mean {frac:.2f} of "
                               f"episodes; training-side signal; {guard}; no held-out here)"),
                 "expected_effect": "episodes lengthen; eval progress_rate does not fall",
+                # machine-checkable form of expected_effect (doc 08 §11
+                # amendment 4 payoff): scored when the watch clears
+                "expected_effect_check": {"metric": "Episode/len_mean",
+                                          "op": ">=", "value": self.len_low},
                 "tripwire": tripwire,
             }
         if full and all(v > self.len_high for v in recent) and cur - self.notch >= lo:
@@ -182,6 +270,8 @@ class TrainSideBandPolicy:
                               f"{self.len_high} for {self.sustain} segments "
                               f"(training-side signal; {guard})"),
                 "expected_effect": "tracking precision demand rises; length dips then recovers",
+                "expected_effect_check": {"metric": "Episode/len_mean",
+                                          "op": "<=", "value": self.len_high},
                 "tripwire": tripwire,
             }
         return {"action": "none",
@@ -189,13 +279,82 @@ class TrainSideBandPolicy:
                           f"[{self.len_low}, {self.len_high}] band or sustain unmet"}
 
 
-class SmokeDriver:
-    """Composes adapter + digest + policy + registry over real segments."""
+# ── E1: scripted-decision ablation arm ───────────────────────────────
+# The EXACT decision stream both v4 manager seeds walked (verified against
+# knobs_in in manager_journal_v4_seed42.json / _seed1337.json): tick -> (knob,
+# value). E1 asks the cheapest project-killing question — does an OPEN-LOOP
+# replay of the same knob ladder reproduce the manager runs?
+V4_MANAGER_LADDER = {
+    2: ("termination_threshold.foot_pos_xyz", 0.25),
+    4: ("termination_threshold.ee_body_pos", 0.20),
+    6: ("termination_threshold.foot_pos_xyz", 0.30),
+    8: ("termination_threshold.ee_body_pos", 0.25),
+    10: ("termination_threshold.foot_pos_xyz", 0.35),
+}
+
+
+@dataclasses.dataclass
+class ScriptedPolicy:
+    """Open-loop ladder replay (E1 ablation arm).
+
+    Replays a fixed tick-indexed knob ladder UNCONDITIONALLY: the choice
+    reads nothing but ``state.tick`` — no digest, no eval state, no sustain
+    history, no watch-window gating. The digest argument is used ONLY to
+    pick the tripwire metric (eval-side when an eval stream exists), i.e.
+    the eval-side tripwire SAFETY stays armed exactly as in the manager arm,
+    but the decisions themselves are fixed.
+
+    Same propose() interface as TrainSideBandPolicy; deliberately NO
+    observe() — this policy keeps no run-state whatsoever.
+    """
+
+    ladder: Dict[int, tuple] = dataclasses.field(
+        default_factory=lambda: dict(V4_MANAGER_LADDER))
+
+    def propose(self, digest: Optional[Dict[str, Any]], state, registry) -> Dict[str, Any]:
+        rung = self.ladder.get(state.tick)
+        if rung is None:
+            return {"action": "none",
+                    "reason": f"scripted ladder: no rung scheduled at tick {state.tick}"}
+        knob, value = rung
+        # tripwire safety mirrors TrainSideBandPolicy._tripwire: eval-side
+        # fixed-threshold guard when an eval stream exists. This is the ONLY
+        # digest read and it does not influence WHICH decision is made.
+        if (digest or {}).get("eval"):
+            tripwire = {"metric": "eval/progress_rate", "drop_pct": 30, "evals": 2}
+        else:
+            tripwire = {"metric": "Episode/rew_mean", "drop_pct": 20, "evals": 2}
+        return {
+            "action": "set", "knob": knob, "value": value,
+            "rationale": (f"scripted open-loop replay (E1 ablation): fixed v4 "
+                          f"manager ladder rung at tick {state.tick} — no "
+                          "digest/eval input to the choice"),
+            "expected_effect": ("reproduces the v4 manager arm's knob "
+                                "trajectory without closed-loop decisions"),
+            "tripwire": tripwire,
+        }
+
+
+class SmokeDriver(RunManager):
+    """Composes adapter + digest + policy + registry over real segments.
+
+    Phase B5 thin shell: the per-segment state machine (run(), summary(),
+    tripwire judgment, pending gate, rollback, effect scoring, journal
+    assembly) is entirely core.loop.RunManager — this class only assembles
+    the SONIC side (JobAdapter, knob registry, motion_file pins, held-out
+    hook, checkpoint purge, disk-gate path, trainer scalar keys) into a
+    LoopConfig and delegates.
+    """
 
     # below this baseline, relative progress_rate drops are noise-level
     # (baseline curve: progress_rate ~0.003 at 2k iters); an armed tripwire
     # additionally requires an absolute drop of this size to breach
+    # (enforced by core.tripwire.TripwireWatch, same constant)
     EVAL_ABS_MIN_DROP = 0.002
+
+    # E0 disk gate: refuse to launch a segment with less than this free on
+    # the filesystem holding the run dirs (per-segment checkpoints ~3.6 GB)
+    MIN_FREE_BYTES = 8 * 1024 ** 3
 
     def __init__(self, policy, adapter=None, arm: str = "manager",
                  iterations_per_segment: int = 10, window: int = 5,
@@ -203,262 +362,127 @@ class SmokeDriver:
                  num_envs: int = 64, eval_envs: int = 64,
                  run_eval: bool = True, seed: int = 42,
                  initial_checkpoint: Optional[str] = None,
-                 project: Optional[str] = None):
-        self.policy = policy
+                 project: Optional[str] = None,
+                 heldout_manifest: Optional[str] = None,
+                 heldout_eval_motion_file: Optional[str] = None,
+                 curriculum_motion_file: Optional[str] = None,
+                 eval_motion_file: Optional[str] = None,
+                 disk_gate_path: Optional[str] = None):
+        # held-out protected-metric wiring (doc 08 §5): when a manifest is
+        # given, (a) every TRAINING launch is pinned to the curriculum-only
+        # motion directory so the held-out split can never enter the training
+        # set (hard rule 4), and (b) each segment runs a second eval-only
+        # pass on the held-out subset whose record is merged into the eval
+        # stream as heldout_* keys — reachable by tripwires as
+        # eval/heldout_success_rate but invisible to the manager's knobs.
+        self.heldout_manifest = (holdout.load_manifest(heldout_manifest)
+                                 if heldout_manifest else None)
+        self.heldout_eval_motion_file = heldout_eval_motion_file
+        # v4 post-mortem (2026-07-07): the standard eval pass previously
+        # passed NO motion_file override, so eval_agent_trl.py inherited the
+        # checkpoint-sibling config's motion_file — with the curriculum pin
+        # that meant a 116,924-motion eval (28+ h projected), driver timeout,
+        # and an orphaned GPU eval starving every later launch. motion_file
+        # is checkpoint-config state that eval.yaml does not re-pin (same
+        # leak class as review-M1 foot_pos_xyz), so pin it EXPLICITLY.
+        self.eval_motion_file = eval_motion_file
+        extra = None
+        if self.heldout_manifest:
+            if not (heldout_eval_motion_file and curriculum_motion_file):
+                raise ValueError("heldout_manifest requires both "
+                                 "heldout_eval_motion_file and curriculum_motion_file")
+            if not eval_motion_file:
+                raise ValueError(
+                    "heldout_manifest requires eval_motion_file: without an "
+                    "explicit pin the standard eval pass inherits the "
+                    "checkpoint config's motion_file (the curriculum pin -> "
+                    "116,924-motion eval; v4 post-mortem 2026-07-07)")
+            extra = ["++manager_env.commands.motion.motion_lib_cfg."
+                     f"motion_file={curriculum_motion_file}"]
         # default project keeps v2's smoke_{arm}; comparison runs pass their
         # own prefix so v2 artifacts aren't overwritten
-        self.adapter = adapter or job_adapter.JobAdapter(
+        injected_adapter = adapter
+        adapter = adapter or job_adapter.JobAdapter(
             project=project or f"smoke_{arm}", num_envs=num_envs,
-            save_last_frequency=5, seed=seed)
-        self.arm = arm
-        self.iters = iterations_per_segment
-        self.window = window
-        self.eval_envs = eval_envs
-        # eval requires an adapter that implements eval_segment (the fake
-        # adapters in the v2 unit tests don't; they exercise the train-side
-        # fallback path)
-        self.run_eval = run_eval and hasattr(self.adapter, "eval_segment")
-        self.registry = knob_registry.load_registry()
-        self.state = knob_registry.RunState(tick=0)
-        self.knobs: Dict[str, Any] = dict(base_knobs or {})
-        # seed the registry's belief with the run's ACTUAL starting values —
-        # registry.yaml defaults describe the Stage-2 patch context (loose
-        # start 0.30/0.35), but these runs apply overrides on the STOCK
-        # config (strict 0.15/0.2). Without seeding, "one notch" from the
-        # believed default is a 2x jump from the real value (v2 defect,
-        # found 2026-07-02). current_values only — not apply(), which would
-        # start cooldown clocks for changes the manager never made.
-        for name, value in (base_knobs or {}).items():
-            if name in self.registry.knobs:
-                self.state.current_values[name] = value
-        self.journal: List[Dict[str, Any]] = []
-        self.all_train: List[dict] = []
-        self.all_sampler: List[dict] = []
-        self.all_eval: List[dict] = []
-        self.initial_checkpoint = initial_checkpoint
-        self.armed: Optional[Dict[str, Any]] = None  # {knob, prev_value, prev_ckpt, baseline, breaches, tw}
+            save_last_frequency=5, seed=seed, extra_overrides=extra)
 
-    def _knob_state(self):
-        return {
-            name: {"value": self.registry.current_of(name, self.state),
-                   "ticks_since_change": (self.state.tick - self.state.last_changed_tick[name]
-                                          if name in self.state.last_changed_tick else None)}
-            for name in self.knobs or {}
-        }
+        # E0 disk gate: the path whose filesystem must hold >= MIN_FREE_BYTES
+        # before every segment launch. Explicit path wins; otherwise the
+        # gate self-arms only for the REAL adapter (adapter=None above ->
+        # JobAdapter writing under BASE_DIR on the training volume). Injected
+        # adapters (unit-test fakes) get no gate unless a path is passed —
+        # tests must not depend on this host's disk state. The core arms
+        # ONLY from an explicit path, so the auto-arming stays HERE.
+        if disk_gate_path is not None:
+            gate = disk_gate_path
+        elif injected_adapter is None and os.path.isdir(job_adapter.BASE_DIR):
+            gate = job_adapter.BASE_DIR
+        else:
+            gate = None
 
-    def _build_digest(self) -> Dict[str, Any]:
-        return digest_builder.build_digest(
-            train_records=self.all_train, sampler_records=self.all_sampler,
-            eval_records=self.all_eval,
-            knob_state=self._knob_state(), decision_history=self.journal[-5:],
-            max_over_mean=float(self.knobs.get(
-                "adp_samp_failure_rate_max_over_mean", 50.0)),
-            window=self.window)
+        # standard-eval motion_file pin (opaque Hydra string: SONIC-side)
+        eval_extra = None
+        if self.eval_motion_file:
+            eval_extra = ["++manager_env.commands.motion.motion_lib_cfg."
+                          f"motion_file={self.eval_motion_file}"]
 
-    def _tripwire_value(self, metric: str, train_rew: Optional[float],
-                        this_segment_it: Optional[int] = None) -> Optional[float]:
-        """Current value of a tripwire metric: eval-side metrics read the
-        newest eval record, anything else reads training-side reward.
+        # held-out protected-metric pass as a core hook (doc 08 §5): a
+        # SECOND eval-only run on the held-out subset; the core merges its
+        # record into the eval stream (heldout_* keys) so a tripwire can
+        # name eval/heldout_success_rate, but it never feeds the policy's
+        # band signal and no knob can move its thresholds or motion set.
+        heldout_hook = None
+        if self.heldout_manifest is not None:
+            def heldout_hook(adp, seg, cum_it, eval_envs_):
+                raw = adp.eval_segment(
+                    seg, it=cum_it, num_envs=eval_envs_,
+                    out_suffix="_heldout_eval", raw=True,
+                    extra_overrides=[
+                        "++manager_env.commands.motion.motion_lib_cfg."
+                        f"motion_file={self.heldout_eval_motion_file}"])
+                return holdout.heldout_record_from_metrics_eval(
+                    raw, self.heldout_manifest, it=cum_it)
 
-        `this_segment_it`: when set, an eval-side read returns None unless
-        the newest eval record came from THIS segment — otherwise a failed
-        eval pass would silently reuse the stale pre-change record, which
-        equals the armed baseline and can never breach (review M3: two
-        consecutive eval failures scored a change `survived` on zero
-        post-change evidence)."""
-        if metric.startswith("eval/"):
-            key = metric.removeprefix("eval/")
-            if not self.all_eval or key not in self.all_eval[-1]:
-                return None
-            rec = self.all_eval[-1]
-            if this_segment_it is not None and rec.get("it") != this_segment_it:
-                return None
-            return rec[key]
-        return train_rew
+        # arm string -> core behavior flags (the string itself survives only
+        # for segment naming and journal text, exactly as before):
+        #   control  -> no observe, no propose ("control arm" decisions)
+        #   scripted -> no pending gate; open watch retired on a new rung
+        #   manager  -> defaults
+        cfg = LoopConfig(
+            arm=arm,
+            iterations_per_segment=iterations_per_segment,
+            window=window,
+            eval_envs=eval_envs,
+            run_eval=run_eval,
+            seed=seed,
+            initial_checkpoint=initial_checkpoint,
+            base_knobs=base_knobs,
+            observe_enabled=(arm != "control"),
+            propose_enabled=(arm != "control"),
+            gate_on_pending=(arm != "scripted"),
+            retire_open_watch_on_set=(arm == "scripted"),
+            eval_extra_overrides=eval_extra,
+            heldout_hook=heldout_hook,
+            purge_fn=purge_intermediate_checkpoints,
+            knob_config_paths=job_adapter.KNOB_TO_CONFIG_PATH,
+            train_scalar_keys=tuple(digest_builder.TRAIN_SCALAR_KEYS),
+            disk_gate_path=gate,
+            min_free_bytes=self.MIN_FREE_BYTES,
+        )
+        super().__init__(policy, adapter, knob_registry.load_registry(),
+                         cfg, state=knob_registry.RunState(tick=0))
 
-    def run(self, n_segments: int) -> Dict[str, Any]:
-        checkpoint = self.initial_checkpoint
-        for i in range(n_segments):
-            self.state.tick += 1
-            name = f"{self.arm}_s{i+1}"
-            seg = self.adapter.launch_segment(name, self.iters, self.knobs,
-                                              checkpoint_in=checkpoint)
-            self.adapter.wait(seg, poll_s=10, timeout_s=3600)
-            parsed = self.adapter.parse_segment(seg)
-            if seg.status != "done":
-                self.journal.append({"tick": self.state.tick, "segment": name,
-                                     "event": "segment_failed",
-                                     "tracebacks": parsed.tracebacks})
-                break
-            # offset iteration numbers so records accumulate monotonically.
-            # Console iteration numbering restarts at 1 every segment even on
-            # resume (verified: seg2 logs "Learning iteration 1" after
-            # "Loaded checkpoint from step 5") — normalize against the first
-            # parsed iteration so a numbering change upstream can't double-offset.
-            base_it = self.all_train[-1]["it"] if self.all_train else 0
-            first_it = parsed.train[0]["it"] if parsed.train else 1
-            for r in parsed.train:
-                r["it"] += base_it - (first_it - 1)
-            for r in parsed.sampler:
-                r["it"] += base_it - (first_it - 1)
-            self.all_train.extend(parsed.train)
-            self.all_sampler.extend(parsed.sampler)
-            checkpoint = seg.snapshot or checkpoint
-            cum_it = self.all_train[-1]["it"] if self.all_train else 0
-
-            rew = parsed.train[-1].get("Episode/rew_mean") if parsed.train else None
-            entry: Dict[str, Any] = {
-                "tick": self.state.tick, "segment": name,
-                "knobs_in": dict(self.knobs),
-                "rew_mean_last": rew,
-                "len_mean_last": parsed.train[-1].get("Episode/len_mean") if parsed.train else None,
-            }
-
-            # per-segment eval pass at FIXED relaxed thresholds (both arms —
-            # the scoreboard neither arm's knobs can reach)
-            if self.run_eval:
-                try:
-                    ev = self.adapter.eval_segment(seg, it=cum_it,
-                                                   num_envs=self.eval_envs)
-                    self.all_eval.append(ev)
-                    entry["eval"] = {k: ev[k] for k in
-                                     ("success_rate", "progress_rate",
-                                      "mpjpe_all_mean", "mpjpe_l_all_mean",
-                                      "mpjpe_pa_all_mean")
-                                     if k in ev}
-                    if "per_motion" in ev:
-                        entry["eval"]["per_motion_progress"] = {
-                            k: v.get("progress") for k, v in ev["per_motion"].items()}
-                except (RuntimeError, TimeoutError) as e:
-                    # an eval failure must not kill the run; the tripwire
-                    # watch skips this segment (neither breach nor clean)
-                    entry["eval_error"] = str(e)[:300]
-
-            digest = self._build_digest()
-            # the policy observes EVERY segment (control excepted) so gated
-            # ticks leave no holes in its sustain history (v2 residual 5)
-            if self.arm != "control" and hasattr(self.policy, "observe"):
-                self.policy.observe(digest)
-
-            # tripwire watch on the armed decision's stated metric
-            if self.armed is not None:
-                tw = self.armed
-                value = self._tripwire_value(tw["tw"]["metric"], rew,
-                                             this_segment_it=cum_it)
-                if value is None:
-                    # missing metric (e.g. failed eval): neither breach nor
-                    # clean — the watch window simply extends
-                    entry["tripwire_note"] = (
-                        f"no {tw['tw']['metric']} value this segment; watch unchanged")
-                else:
-                    threshold = tw["baseline"] * (1 - tw["tw"]["drop_pct"] / 100.0)
-                    breached = value < threshold
-                    if tw["tw"]["metric"].startswith("eval/"):
-                        # absolute-floor guard: at tiny baselines a relative
-                        # drop is noise, not regression
-                        breached = breached and (tw["baseline"] - value) > self.EVAL_ABS_MIN_DROP
-                    if breached:
-                        tw["breaches"] += 1
-                        tw["clean"] = 0
-                    else:
-                        tw["breaches"] = 0
-                        tw["clean"] = tw.get("clean", 0) + 1
-                    if tw["breaches"] >= tw["tw"]["evals"]:
-                        self.knobs[tw["knob"]] = tw["prev_value"]
-                        self.state.apply(tw["knob"], tw["prev_value"])
-                        checkpoint = tw["prev_ckpt"]
-                        entry["event"] = "rollback"
-                        entry["restored"] = {tw["knob"]: tw["prev_value"]}
-                        # mark the originating decision failed (doc 08 §3 step 5)
-                        for prev in reversed(self.journal):
-                            if prev.get("applied") and prev["decision"]["knob"] == tw["knob"]:
-                                prev["outcome"] = "failed_rolled_back"
-                                break
-                        self.armed = None
-                        self.journal.append(entry)
-                        continue
-                    if tw["clean"] >= tw["tw"]["evals"]:
-                        # survived its watch window: score it and disarm (NOT "met" —
-                        # survival of the tripwire is weaker than expected_effect
-                        # satisfaction, which is unchecked here)
-                        for prev in reversed(self.journal):
-                            if prev.get("applied") and prev["decision"]["knob"] == tw["knob"]:
-                                prev["outcome"] = "survived"
-                                break
-                        self.armed = None
-
-            if self.arm == "control":
-                entry["decision"] = {"action": "none", "reason": "control arm"}
-                self.journal.append(entry)
-                continue
-
-            # pending-decision gate (playbook tick-procedure step 2; review
-            # finding 1-2): while a change is armed/unscored, no new change —
-            # overlapping changes orphan the first tripwire and destroy
-            # attribution. propose() is not called (observe() already was).
-            if self.armed is not None:
-                entry["decision"] = {
-                    "action": "none",
-                    "reason": f"pending decision on {self.armed['knob']} still "
-                              "under tripwire watch (one change at a time)"}
-                self.journal.append(entry)
-                continue
-
-            decision = self.policy.propose(digest, self.state, self.registry)
-            entry["decision"] = decision
-            if decision.get("action") == "set":
-                res = self.registry.validate_decision(decision, self.state)
-                entry["validation"] = {"ok": res.ok, "errors": res.errors}
-                # baseline must come from THIS segment's eval — a stale
-                # record would arm the watch against pre-change state
-                baseline = self._tripwire_value(
-                    decision.get("tripwire", {}).get("metric", "Episode/rew_mean"),
-                    rew, this_segment_it=cum_it)
-                if res.ok and baseline is None:
-                    # no baseline → the tripwire would be unarmed in practice;
-                    # refuse the change rather than apply it unguarded
-                    entry["validation"] = {"ok": False, "errors":
-                        [f"no {decision['tripwire']['metric']} baseline available "
-                         "to arm the tripwire"]}
-                elif res.ok:
-                    prev = self.registry.current_of(decision["knob"], self.state)
-                    self.armed = {"knob": decision["knob"], "prev_value": prev,
-                                  "prev_ckpt": checkpoint,
-                                  "baseline": baseline,
-                                  "breaches": 0, "clean": 0,
-                                  "tw": decision["tripwire"]}
-                    self.knobs[decision["knob"]] = decision["value"]
-                    self.state.apply(decision["knob"], decision["value"])
-                    entry["applied"] = True
-                    entry["outcome"] = "pending"
-                    entry["digest_hash"] = digest_hash(digest)
-                    entry["applied_at_iter"] = cum_it
-            self.journal.append(entry)
-        return self.summary()
-
-    def summary(self) -> Dict[str, Any]:
-        applied = [e for e in self.journal if e.get("applied")]
-        return {
-            "arm": self.arm,
-            "segments": len([e for e in self.journal if "segment" in e]),
-            "decisions_applied": len(applied),
-            "rollbacks": len([e for e in self.journal if e.get("event") == "rollback"]),
-            "rejected": len([e for e in self.journal
-                             if e.get("validation") and not e["validation"]["ok"]]),
-            "final_knobs": dict(self.knobs),
-            "rew_series": [e.get("rew_mean_last") for e in self.journal],
-            "len_series": [e.get("len_mean_last") for e in self.journal],
-            "eval_progress_series": [
-                (e.get("eval") or {}).get("progress_rate") for e in self.journal],
-            "eval_mpjpe_series": [
-                (e.get("eval") or {}).get("mpjpe_all_mean") for e in self.journal],
-        }
+    # run() / summary() / armed / journal / knobs / state — all inherited
+    # from core.loop.RunManager (byte-compatible journal + summary).
 
 
 def main(argv=None) -> int:
     import argparse
     p = argparse.ArgumentParser(description="manager ON-vs-OFF driver (v3: per-segment eval)")
-    p.add_argument("--arm", choices=["manager", "control"], required=True)
+    p.add_argument("--arm", choices=["manager", "control", "scripted"], required=True,
+                   help="'scripted' = E1 ablation: open-loop replay of the "
+                        "fixed v4 manager knob ladder (no digest reads, no "
+                        "watch-window gating; eval-side tripwire stays armed)")
     p.add_argument("--segments", type=int, default=4)
     p.add_argument("--iters", type=int, default=10)
     p.add_argument("--num-envs", type=int, default=64)
@@ -479,15 +503,38 @@ def main(argv=None) -> int:
     p.add_argument("--len-low", type=float, default=20.0)
     p.add_argument("--sustain", type=int, default=2)
     p.add_argument("--journal-out")
+    p.add_argument("--heldout-manifest",
+                   help="path to holdout manifest JSON; enables the per-"
+                        "segment held-out protected-metric pass and pins "
+                        "training to --curriculum-motion-file")
+    p.add_argument("--heldout-motion-file",
+                   help="container path of the held-out motion dir "
+                        "(e.g. data/motion_lib_bones_seed/robot_heldout)")
+    p.add_argument("--curriculum-motion-file",
+                   help="container path of the curriculum-only motion dir "
+                        "(e.g. data/motion_lib_bones_seed/robot_curriculum)")
+    p.add_argument("--eval-motion-file",
+                   help="container path of the FIXED standard-eval motion dir "
+                        "(e.g. data/motion_lib_bones_seed/robot_curriculum_eval64). "
+                        "REQUIRED with --heldout-manifest: pins the standard "
+                        "per-segment eval so it can never inherit the training "
+                        "config's motion set (v4 post-mortem 2026-07-07)")
     args = p.parse_args(argv)
 
     base_knobs = json.loads(args.base_knobs) if args.base_knobs else None
-    policy = TrainSideBandPolicy(len_low=args.len_low, sustain=args.sustain)
+    if args.arm == "scripted":
+        policy = ScriptedPolicy()
+    else:
+        policy = TrainSideBandPolicy(len_low=args.len_low, sustain=args.sustain)
     driver = SmokeDriver(policy, arm=args.arm, iterations_per_segment=args.iters,
                          num_envs=args.num_envs, eval_envs=args.eval_envs,
                          run_eval=not args.no_eval, seed=args.seed,
                          initial_checkpoint=args.initial_checkpoint,
-                         project=args.project, base_knobs=base_knobs)
+                         project=args.project, base_knobs=base_knobs,
+                         heldout_manifest=args.heldout_manifest,
+                         heldout_eval_motion_file=args.heldout_motion_file,
+                         curriculum_motion_file=args.curriculum_motion_file,
+                         eval_motion_file=args.eval_motion_file)
     summary = driver.run(args.segments)
     print(json.dumps(summary, indent=2))
     if args.journal_out:
