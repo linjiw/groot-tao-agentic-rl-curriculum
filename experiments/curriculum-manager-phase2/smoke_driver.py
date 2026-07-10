@@ -367,7 +367,10 @@ class SmokeDriver(RunManager):
                  heldout_eval_motion_file: Optional[str] = None,
                  curriculum_motion_file: Optional[str] = None,
                  eval_motion_file: Optional[str] = None,
-                 disk_gate_path: Optional[str] = None):
+                 disk_gate_path: Optional[str] = None,
+                 train_env: Optional[Dict[str, Any]] = None,
+                 train_pythonpath: Optional[str] = None,
+                 tier0_train_override: Optional[str] = None):
         # held-out protected-metric wiring (doc 08 §5): when a manifest is
         # given, (a) every TRAINING launch is pinned to the curriculum-only
         # motion directory so the held-out split can never enter the training
@@ -399,12 +402,18 @@ class SmokeDriver(RunManager):
                     "116,924-motion eval; v4 post-mortem 2026-07-07)")
             extra = ["++manager_env.commands.motion.motion_lib_cfg."
                      f"motion_file={curriculum_motion_file}"]
+        # tier-0 reward-func swap (doc 10 G0/G2): a TRAINING-only Hydra
+        # override, appended to `extra` (the eval pass never gets it — the
+        # scoreboard stays stock). Orthogonal to the manager action space.
+        if tier0_train_override:
+            extra = (extra or []) + [tier0_train_override]
         # default project keeps v2's smoke_{arm}; comparison runs pass their
         # own prefix so v2 artifacts aren't overwritten
         injected_adapter = adapter
         adapter = adapter or job_adapter.JobAdapter(
             project=project or f"smoke_{arm}", num_envs=num_envs,
-            save_last_frequency=5, seed=seed, extra_overrides=extra)
+            save_last_frequency=5, seed=seed, extra_overrides=extra,
+            train_env=train_env, train_pythonpath=train_pythonpath)
 
         # E0 disk gate: the path whose filesystem must hold >= MIN_FREE_BYTES
         # before every segment launch. Explicit path wins; otherwise the
@@ -519,6 +528,24 @@ def main(argv=None) -> int:
                         "REQUIRED with --heldout-manifest: pins the standard "
                         "per-segment eval so it can never inherit the training "
                         "config's motion set (v4 post-mortem 2026-07-07)")
+    # tier-0 sigma-EMA shim (doc 10 G0/G2): injected via env + PYTHONPATH +
+    # a reward-func Hydra override, applied to TRAINING launches only (eval
+    # stays stock — the scoreboard must not see the shim). See
+    # experiments/run-manager-core/adapters/sonic_tier0/README.md.
+    p.add_argument("--tier0", choices=["off", "noop", "active"], default="off",
+                   help="off=no shim (stock); noop=shim inserted but inert "
+                        "(G0 bit-identity arm); active=PBHC sigma-EMA (G2)")
+    p.add_argument("--tier0-pythonpath", default="/workspace/rmc_tier0",
+                   help="container PYTHONPATH for the tier-0 shim package")
+    p.add_argument("--tier0-term", default="tracking_anchor_pos",
+                   help="reward term to wrap (maps to func + class name)")
+    p.add_argument("--tier0-ema-rate", type=float, default=0.01)
+    p.add_argument("--tier0-sigma-floor", type=float, default=0.1,
+                   help="sigma floor as a FRACTION of the term's std")
+    p.add_argument("--tier0-sidecar-dir",
+                   help="dir for sigma-state persistence across segment resumes")
+    p.add_argument("--tier0-trace",
+                   help="append-JSONL sigma-trace path (journal)")
     args = p.parse_args(argv)
 
     base_knobs = json.loads(args.base_knobs) if args.base_knobs else None
@@ -526,6 +553,39 @@ def main(argv=None) -> int:
         policy = ScriptedPolicy()
     else:
         policy = TrainSideBandPolicy(len_low=args.len_low, sustain=args.sustain)
+
+    # tier-0 sigma-EMA shim assembly (doc 10 G0/G2). off => nothing; noop/
+    # active => env vars + PYTHONPATH + a reward-func Hydra override appended
+    # to TRAINING launches. The func override rides the same extra_overrides
+    # path as the curriculum motion pin (SmokeDriver builds `extra`), but the
+    # shim's func/env is orthogonal to the manager action space.
+    tier0_env = None
+    tier0_pp = None
+    tier0_override = None
+    if args.tier0 != "off":
+        term_to_class = {
+            "tracking_anchor_pos": "SigmaEMAAnchorPos",
+            "tracking_anchor_ori": "SigmaEMAAnchorOri",
+            "tracking_relative_body_pos": "SigmaEMARelBodyPos",
+        }
+        cls = term_to_class.get(args.tier0_term)
+        if cls is None:
+            raise SystemExit(f"--tier0-term {args.tier0_term} has no shim class "
+                             f"(known: {sorted(term_to_class)})")
+        tier0_pp = args.tier0_pythonpath
+        tier0_env = {
+            "SONIC_TIER0_ACTIVE": "1" if args.tier0 == "active" else "0",
+            "SONIC_TIER0_EMA_RATE": repr(args.tier0_ema_rate),
+            "SONIC_TIER0_SIGMA_FLOOR": repr(args.tier0_sigma_floor),
+        }
+        if args.tier0_sidecar_dir:
+            tier0_env["SONIC_TIER0_SIDECAR_DIR"] = args.tier0_sidecar_dir
+        if args.tier0_trace:
+            tier0_env["SONIC_TIER0_TRACE"] = args.tier0_trace
+            tier0_env["SONIC_TIER0_LOG_EVERY"] = "10"
+        tier0_override = (f"++manager_env.rewards.{args.tier0_term}.func="
+                          f"adapters.sonic_tier0.sonic_sigma_ema_term:{cls}")
+
     driver = SmokeDriver(policy, arm=args.arm, iterations_per_segment=args.iters,
                          num_envs=args.num_envs, eval_envs=args.eval_envs,
                          run_eval=not args.no_eval, seed=args.seed,
@@ -534,7 +594,9 @@ def main(argv=None) -> int:
                          heldout_manifest=args.heldout_manifest,
                          heldout_eval_motion_file=args.heldout_motion_file,
                          curriculum_motion_file=args.curriculum_motion_file,
-                         eval_motion_file=args.eval_motion_file)
+                         eval_motion_file=args.eval_motion_file,
+                         train_env=tier0_env, train_pythonpath=tier0_pp,
+                         tier0_train_override=tier0_override)
     summary = driver.run(args.segments)
     print(json.dumps(summary, indent=2))
     if args.journal_out:

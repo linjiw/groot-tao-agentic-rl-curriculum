@@ -104,6 +104,32 @@ def test_train_command_no_env_is_unchanged():
     assert inner.startswith("cd /workspace/GR00T-WholeBodyControl && /isaac-sim/python.sh")
 
 
+def test_jobadapter_threads_tier0_env_to_launch(monkeypatch):
+    # JobAdapter(train_env=, train_pythonpath=) must reach build_train_command
+    # on every launch. Capture the command instead of running docker.
+    import job_adapter as ja
+    captured = {}
+
+    def fake_run(cmd, **kw):
+        captured["cmd"] = cmd
+        class R: returncode = 0; stdout = ""; stderr = ""
+        return R()
+
+    monkeypatch.setattr(ja, "is_training_running", lambda: False)
+    monkeypatch.setattr(ja.subprocess, "run", fake_run)
+    adp = JobAdapter(project="g2", num_envs=256, seed=42,
+                     train_env={"SONIC_TIER0_ACTIVE": "1"},
+                     train_pythonpath="/workspace/rmc_tier0",
+                     extra_overrides=["++manager_env.rewards.tracking_anchor_pos.func="
+                                      "adapters.sonic_tier0.sonic_sigma_ema_term:SigmaEMAAnchorPos"])
+    adp.launch_segment("g2_s1", iterations=50, knobs={}, checkpoint_in="/w/warm.pt")
+    inner = captured["cmd"][-1]
+    assert "PYTHONPATH=/workspace/rmc_tier0:$PYTHONPATH" in inner
+    assert "SONIC_TIER0_ACTIVE=1" in inner
+    assert "func=adapters.sonic_tier0.sonic_sigma_ema_term:SigmaEMAAnchorPos" in inner
+    assert "checkpoint=/w/warm.pt" in inner
+
+
 # ── log parsing against the REAL excerpt ─────────────────────────────
 @pytest.fixture()
 def excerpt_lines():

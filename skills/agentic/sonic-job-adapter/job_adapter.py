@@ -467,7 +467,9 @@ class JobAdapter:
     def __init__(self, project: str = "manager", num_envs: int = 256,
                  steps_per_env: int = 16, save_last_frequency: int = 10,
                  seed: int = 42,
-                 extra_overrides: Optional[List[str]] = None):
+                 extra_overrides: Optional[List[str]] = None,
+                 train_env: Optional[Dict[str, Any]] = None,
+                 train_pythonpath: Optional[str] = None):
         self.project = project
         self.num_envs = num_envs
         self.steps_per_env = steps_per_env
@@ -475,6 +477,11 @@ class JobAdapter:
         self.seed = seed
         # applied to every training launch (NOT eval); see build_train_command
         self.extra_overrides = list(extra_overrides or [])
+        # tier-0 shim injection (doc 10 I1): env vars + PYTHONPATH for the
+        # training process only — eval passes are stock (the scoreboard must
+        # not see the shim). NOT part of the manager's action space.
+        self.train_env = dict(train_env or {})
+        self.train_pythonpath = train_pythonpath
         self.segments: List[Segment] = []
 
     def launch_segment(self, name: str, iterations: int,
@@ -492,6 +499,8 @@ class JobAdapter:
             save_last_frequency=self.save_last_frequency,
             log_path=seg.log_path, seed=self.seed,
             extra_overrides=self.extra_overrides,
+            env=self.train_env or None,
+            pythonpath=self.train_pythonpath,
         )
         subprocess.run(cmd, check=True, capture_output=True, text=True, timeout=60)
         seg.status = "running"
